@@ -1,3 +1,4 @@
+import { Picto } from "@/components/Pictos";
 import { Link } from "react-router-dom";
 import { ArrowRight, Award } from "lucide-react";
 import { useApi } from "@/lib/api";
@@ -93,7 +94,7 @@ const Attainments = ({ items }) => {
           {groups.map((g) => (
             <li key={g.id} className="border border-[#e5e9ef] bg-white p-5" data-testid={`competency-group-${g.id}`}>
               <div className="flex items-center justify-between gap-3">
-                <p className="font-semibold"><Award size={14} className="mr-2 inline text-[#147c77]" aria-hidden="true" />{g.name}</p>
+                <p className="flex items-center gap-2 font-semibold"><Picto id={g.id} category={g.items[0]?.category_id} />{g.name}</p>
                 <span className="font-mono text-sm" data-testid={`competency-level-${g.id}`}>{g.valid ? `Niveau ${g.level}` : "Preuves invalidées"}</span>
               </div>
               <p className="mt-1 text-xs text-[#627086]">{g.items.length} preuve{g.items.length > 1 ? "s" : ""}</p>

@@ -38,8 +38,8 @@ export default function CourseReader() {
       <header className="border-b border-[#e5e9ef] pb-12 pt-8">
         <Container className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-8">
-            <Eyebrow>Cours {course.code} · {levelRange(course.levels)} · {course.duration_hours} h</Eyebrow>
-            <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl" data-testid="course-title">{course.title}</h1>
+            <Eyebrow>Cours {course.code} · {levelRange(course.levels)} · ~ {course.estimated_minutes} min</Eyebrow>
+            <h1 className="mt-5 text-4xl sm:text-5xl" data-testid="course-title">{course.title}</h1>
             <p className="mt-5 max-w-3xl text-base leading-relaxed text-[#505e75] md:text-lg">{course.summary}</p>
           </div>
           <div className="self-end lg:col-span-4">
@@ -71,7 +71,7 @@ export default function CourseReader() {
                     <span className="font-mono text-xs font-semibold text-[#147c77]">{m.code}</span>
                     <span className="ml-2 text-base font-semibold group-hover:underline">{m.title}</span>
                   </Link>
-                  <p className="mt-1 text-xs text-[#627086]">{levelRange(m.levels)} · {m.resource_count} ressources · {m.duration_hours} h</p>
+                  <p className="mt-1 text-xs text-[#627086]">{levelRange(m.levels)} · {m.resource_count} ressources · ~ {m.estimated_minutes} min{m.optional ? " · optionnel" : ""}</p>
                 </div>
                 <div className="flex items-center gap-3 md:justify-end">
                   {p ? (

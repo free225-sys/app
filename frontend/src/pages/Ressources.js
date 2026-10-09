@@ -107,7 +107,8 @@ export default function Ressources() {
   return (
     <div data-testid="ressources-page">
       <PageHeader eyebrow="Ressources" title="Catalogue des modules et des notions."
-        lead="Seize modules et une trentaine de notions, organisés selon les sept étapes du traitement, les six couches, cinq niveaux de profondeur et cinq compétences." />
+        lead="Modules et notions, à filtrer par étape, couche, niveau ou compétence."
+        more={<p>Une vingtaine de modules et une trentaine de notions, organisés selon les sept étapes du traitement, les six couches, cinq niveaux de profondeur et cinq types de compétences.</p>} />
       <Container className="pt-10">
         <div role="tablist" aria-label="Type de contenu" className="flex gap-8 border-b border-[#e5e9ef]">
           {[["modules", "Modules"], ["notions", "Notions"]].map(([key, label]) => (

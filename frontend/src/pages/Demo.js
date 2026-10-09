@@ -7,6 +7,7 @@ import { BTN_PRIMARY, ErrorState, Eyebrow, LINK_ARROW, Loading } from "@/compone
 import { StepVisual } from "@/components/demo/StepVisual";
 import { LayerPanel } from "@/components/demo/LayerPanel";
 import { Quiz } from "@/components/demo/Quiz";
+import { Picto } from "@/components/Pictos";
 
 const MAIN_ID = "casa-jo-cafe-cacao";
 const storeKey = (id) => (id === MAIN_ID ? "casa-demo-state" : `casa-demo-state-${id}`);
@@ -50,7 +51,7 @@ const Timeline = ({ steps, current, onJump }) => {
           <li key={s.number}>
             <button type="button" className={`step-tab ${s.number === current ? "active" : s.number < current ? "done" : ""}`} onClick={() => onJump(s.number)}
               aria-current={s.number === current ? "step" : undefined} aria-label={`Étape ${s.number} : ${s.label}`} data-testid={`stepper-step-${s.number}`}>
-              <span className="n">{s.number}</span><br />{s.label}
+              <span className="flex items-center gap-2"><span className="n">{s.number}</span><Picto id={s.stage_id} size={14} className="mb-2 hidden min-[1130px]:block" /></span>{s.label}
             </button>
           </li>
         ))}
@@ -74,29 +75,27 @@ const FlowGraphic = ({ s, corpusNote }) => (
   </div>
 );
 
-const Details = ({ s, step, detail, toggle, conceptNames, generated, onGenerated }) => (
+const Details = ({ s, detail, toggle, conceptNames, generated, onGenerated }) => (
   <div className="detail-zone" data-testid="demo-visual-zone">
-    <p className="text-[11px] font-bold uppercase tracking-[1.5px] text-[#147c77]">Ce qui se passe en détail</p>
-    <p className="mt-3 text-[15px] font-semibold leading-relaxed" data-testid="demo-step-headline">{s.headline}</p>
-    <div className="mt-5"><StepVisual step={s} generated={generated} onGenerated={onGenerated} /></div>
-    <p className="mt-5 text-sm leading-relaxed text-[#505e75]" data-testid="demo-step-explanation">{s.explanation}</p>
+    <StepVisual step={s} generated={generated} onGenerated={onGenerated} />
     <button type="button" aria-expanded={detail} aria-controls="technical-detail" onClick={toggle}
-      className="mt-4 flex w-full items-center justify-between gap-3 border-t border-[#e5e9ef] py-4 text-left text-sm font-semibold text-[#365ac8]" data-testid="demo-technical-toggle">
+      className="mt-8 flex w-full items-center justify-between gap-3 border-t border-[#e5e9ef] pt-5 text-left text-sm font-semibold text-[#365ac8]" data-testid="demo-technical-toggle">
       {detail ? "Masquer le mécanisme technique" : "Voir le mécanisme technique"}
       <ChevronDown size={18} className={`transition-transform duration-200 ${detail ? "rotate-180" : ""}`} aria-hidden="true" />
     </button>
-    {detail && (
-      <div id="technical-detail" className="casa-fade rounded-[12px] border-l-[3px] border-[#365ac8] bg-[#f7f8fa] px-5 py-4" data-testid="demo-technical-detail">
+    <div id="technical-detail" hidden={!detail} className="casa-fade mt-5 space-y-5" data-testid="demo-technical-detail">
+      <p className="text-[15px] font-semibold leading-relaxed" data-testid="demo-step-headline">{s.headline}</p>
+      <p className="text-sm leading-relaxed text-[#505e75]" data-testid="demo-step-explanation">{s.explanation}</p>
+      <div className="rounded-[12px] border-l-[3px] border-[#365ac8] bg-[#f7f8fa] px-5 py-4">
         <p className="text-sm font-semibold">{s.technical.summary}</p>
         <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm text-[#505e75]">{s.technical.points.map((p) => <li key={p}>{p}</li>)}</ul>
       </div>
-    )}
-    <ul className="mt-5 flex flex-wrap gap-2" aria-label="Notions mobilisées">
-      {s.concept_ids.map((cid) => (
-        <li key={cid}><Link to={`/concepts/${cid}`} className="chip inline-block" data-testid={`demo-concept-link-${cid}`}>{conceptNames[cid] || cid}</Link></li>
-      ))}
-    </ul>
-    <span className="sr-only">Étape {step}</span>
+      <ul className="flex flex-wrap gap-2" aria-label="Notions mobilisées">
+        {s.concept_ids.map((cid) => (
+          <li key={cid}><Link to={`/concepts/${cid}`} className="chip inline-block" data-testid={`demo-concept-link-${cid}`}>{conceptNames[cid] || cid}</Link></li>
+        ))}
+      </ul>
+    </div>
   </div>
 );
 
@@ -134,7 +133,7 @@ const DemoView = ({ scenario, scenarios, onCase, layers, conceptNames }) => {
   const userNav = useRef(false);
   const s = scenario.steps[step - 1];
   const cur = perStep[step] || {};
-  const selectedLayer = cur.layer || s.active_layer_ids[0];
+  const selectedLayer = cur.layer || null;
   const detail = !!cur.detail;
   const patchStep = useCallback((n, patch) => setPerStep((p) => ({ ...p, [n]: { ...p[n], ...patch } })), []);
   const onGenerated = useCallback(() => patchStep(5, { generated: true }), [patchStep]);
@@ -159,7 +158,7 @@ const DemoView = ({ scenario, scenarios, onCase, layers, conceptNames }) => {
   }, [user, maxStep, quiz, scenario.id]);
   useEffect(() => {
     sessionStorage.setItem(storeKey(scenario.id), JSON.stringify({ step, perStep, quiz, maxStep }));
-    setParams({ ...(scenario.id !== MAIN_ID ? { cas: scenario.id } : {}), etape: String(step), couche: selectedLayer, detail: detail ? "1" : "0" }, { replace: true });
+    setParams({ ...(scenario.id !== MAIN_ID ? { cas: scenario.id } : {}), etape: String(step), ...(selectedLayer ? { couche: selectedLayer } : {}), detail: detail ? "1" : "0" }, { replace: true });
   }, [step, perStep, quiz, maxStep, selectedLayer, detail, setParams, scenario.id]);
   useEffect(() => {
     if (!userNav.current) return;
@@ -209,7 +208,7 @@ const DemoView = ({ scenario, scenarios, onCase, layers, conceptNames }) => {
               <div className="micro" data-testid="demo-step-takeaway"><strong>Ce qu'il faut retenir</strong><br /><span>{s.takeaway}</span></div>
             </div>
           </section>
-          <Details s={s} step={step} detail={detail} toggle={() => patchStep(step, { detail: !detail, layer: selectedLayer })} conceptNames={conceptNames}
+          <Details s={s} detail={detail} toggle={() => patchStep(step, { detail: !detail })} conceptNames={conceptNames}
             generated={!!perStep[5]?.generated} onGenerated={onGenerated} />
           <div className="controls">
             <div className="control-left">
@@ -220,7 +219,7 @@ const DemoView = ({ scenario, scenarios, onCase, layers, conceptNames }) => {
           </div>
         </div>
         <LayerPanel layers={layers} activeIds={s.active_layer_ids} selectedId={selectedLayer}
-          onSelect={(id) => { patchStep(step, { layer: id }); trackEvent("demo_layer_click", { layer_id: id, step }); }} />
+          onSelect={(id) => { const next = id === selectedLayer ? null : id; patchStep(step, { layer: next }); if (next) trackEvent("demo_layer_click", { layer_id: id, step }); }} />
       </div>
       <div className="callout" data-testid="demo-callout">
         <div>

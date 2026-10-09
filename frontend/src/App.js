@@ -37,6 +37,12 @@ const ScrollManager = () => {
   return null;
 };
 
+const Main = ({ children }) => {
+  const { pathname } = useLocation();
+  const airy = !pathname.startsWith("/admin") && !pathname.startsWith("/evaluation");
+  return <main id="contenu" tabIndex={-1} className={`flex-1 outline-none ${airy ? "ui-airy" : ""}`}>{children}</main>;
+};
+
 function App() {
   const { data: catalog } = useApi("/catalog/overview");
   return (
@@ -49,7 +55,7 @@ function App() {
           </a>
           <ScrollManager />
           <Header />
-          <main id="contenu" tabIndex={-1} className="flex-1 outline-none">
+          <Main>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/demo" element={<Demo />} />
@@ -72,7 +78,7 @@ function App() {
               <Route path="/verifier/:code" element={<Verify />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </main>
+          </Main>
           <Footer />
         </BrowserRouter>
         </AuthProvider>

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { useApi, useCatalog } from "@/lib/api";
 import { Container, ErrorState, Eyebrow, LINK_ARROW, Loading, PageHeader, SectionTitle, levelRange } from "@/components/common";
+import { Picto } from "@/components/Pictos";
 
 const CourseBlock = ({ course, shared }) => (
   <li id={course.id} className="scroll-mt-24 border border-[#e5e9ef] bg-white" data-testid={`course-${course.id}`}>
@@ -41,7 +42,8 @@ export default function Parcours() {
   return (
     <div data-testid="parcours-page">
       <PageHeader eyebrow="Parcours" title="Quatre entrées, deux parcours, un même socle."
-        lead="Chaque parcours assemble des cours, eux-mêmes composés de modules. Un module peut servir plusieurs cours : il est rédigé une fois et mis à jour partout.">
+        lead="Choisissez une entrée selon votre rôle ; vos acquis vous suivent d'un parcours à l'autre."
+        more={<p>Chaque parcours assemble des cours, eux-mêmes composés de modules. Un module peut servir plusieurs cours : il est rédigé une fois et mis à jour partout.</p>}>
         <Link to="/diagnostic" className={`${LINK_ARROW} mt-8`} data-testid="parcours-diagnostic-link">Hésitez-vous ? Passez le test de positionnement (8 questions) <ArrowRight size={14} aria-hidden="true" /></Link>
       </PageHeader>
       {error && <ErrorState />}
@@ -51,10 +53,11 @@ export default function Parcours() {
           <section className="py-16 sm:py-20" aria-labelledby="entries-title">
             <Container>
               <SectionTitle id="entries-title" eyebrow="Profils d'entrée" title="Par où commencer ?" />
-              <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              <ul className="mt-10 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
                 {catalog.profiles.map((p) => (
-                  <li key={p.id} id={p.id} className="scroll-mt-24 flex flex-col border-t-2 border-[#14243c] bg-white p-6" data-testid={`entry-profile-${p.id}`}>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#627086]">{p.audience}</p>
+                  <li key={p.id} id={p.id} className="scroll-mt-24 flex flex-col rounded-[17px] border border-[#e5e9ef] bg-white p-8" data-testid={`entry-profile-${p.id}`}>
+                    <Picto id={p.id} size={22} />
+                    <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-[#627086]">{p.audience}</p>
                     <h3 className="mt-2 text-2xl font-semibold">{p.name}</h3>
                     <p className="mt-2 flex-1 text-sm leading-relaxed text-[#505e75]">{p.promise}</p>
                     <p className="mt-4 font-mono text-xs text-[#627086]">Niveaux {levelRange(p.levels)}</p>
@@ -69,7 +72,7 @@ export default function Parcours() {
           <section className="border-t border-[#e5e9ef] py-16 sm:py-20" aria-labelledby="pathways-title">
             <Container>
               <SectionTitle id="pathways-title" eyebrow="Parcours" title="Deux parcours structurés"
-                lead="Consultation libre dans cette phase. L'inscription, le suivi de progression et les certificats arriveront avec les comptes." />
+                lead="Des cours obligatoires et optionnels, des compétences cibles et un certificat." />
               <div className="mt-12 space-y-16">
                 {pathways.map((p) => (
                   <article key={p.id} id={p.id} className="scroll-mt-24" data-testid={`pathway-${p.id}`}>

@@ -21,22 +21,51 @@ html {
 
 body {
     margin: 0;
-    font-family: Inter, Arial, sans-serif;
+    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
     background: #f9fafb;
     color: var(--ink);
     line-height: 1.46;
     -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3 {
+h1, h2, h3, h4, h5, h6,
+.eyebrow, .brand, .brand span, .tag, .pill, .exp-head strong, .bar strong, .callout strong,
+.route-card strong, .diagram-block b, .layerdetail b, .layer strong, .step-text .num, .a-num {
     font-family: Inter, Arial, sans-serif !important;
+}
+
+p.font-semibold, p.font-bold, dt.font-semibold, span.font-semibold.block, li > strong:first-child,
+.text-xs.uppercase, .uppercase.tracking-\[0\.12em\], .uppercase.tracking-\[0\.14em\] {
+    font-family: Inter, Arial, sans-serif;
+}
+
+/* Phase 6 — respiration (hors back-office) */
+.ui-airy p { max-width: 68ch; }
+.ui-airy p:not([class*="text-xs"]):not([class*="text-sm"]):not(.font-semibold):not(.eyebrow) { font-size: 16.5px; line-height: 1.68; }
+.ui-airy p + p { margin-top: 1em; }
+.ui-airy section.py-16, .ui-airy section[class*="sm:py-2"], .ui-airy section.section { padding-top: 112px; padding-bottom: 112px; }
+.ui-airy h2 { margin-top: 0; }
+.ui-airy .mt-10.grid, .ui-airy .mt-12.grid, .ui-airy .mt-6.grid, .ui-airy ul.mt-10, .ui-airy ol.mt-12 { margin-top: 44px; }
+.ui-airy .grid.gap-4, .ui-airy .grid.gap-5, .ui-airy .grid.gap-6 { gap: 28px; }
+.ui-airy [class*="border-[#e5e9ef]"].bg-white.p-5, .ui-airy [class*="border-[#e5e9ef]"].bg-white.p-6, .ui-airy .bg-white.p-6 { padding: 30px; }
+.ui-airy .grid > li, .ui-airy .grid > article { height: 100%; }
+@media (min-width: 1130px) { .ui-airy .lg\:grid-cols-4:not(.audiences) { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1129px) { .ui-airy section.py-16, .ui-airy section[class*="sm:py-2"], .ui-airy section.section { padding-top: 64px; padding-bottom: 64px; } }
+@media (max-width: 720px) {
+    .ui-airy section.py-16, .ui-airy section[class*="sm:py-2"], .ui-airy section.section { padding-top: 48px; padding-bottom: 48px; }
+    .ui-airy [class*="border-[#e5e9ef]"].bg-white.p-5, .ui-airy [class*="border-[#e5e9ef]"].bg-white.p-6, .ui-airy .bg-white.p-6 { padding: 22px; }
+    .ui-airy .grid.gap-4, .ui-airy .grid.gap-5, .ui-airy .grid.gap-6 { gap: 20px; }
+}
+html, body { overflow-x: hidden; }
+
+h1, h2, h3 {
     font-weight: 600 !important;
     letter-spacing: -0.015em;
 }
 
 h1, h2 { letter-spacing: -0.02em !important; }
 
-button, input, select, textarea { font-family: inherit; }
+button, input, select, textarea, table { font-family: Arial, "Helvetica Neue", Helvetica, sans-serif; }
 
 [class*="border-[#e5e9ef]"].bg-white:not(input):not(select):not(textarea):not(button):not(span):not(tr):not(td) {
     border-radius: 17px;

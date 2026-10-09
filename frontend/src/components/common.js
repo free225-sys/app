@@ -1,4 +1,6 @@
+import { useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { ChevronDown } from "lucide-react";
 
 export const LAYER_STYLE = {
   "layer-application": { text: "#147c77", soft: "#eef5f3" },
@@ -52,8 +54,73 @@ export const LayerChip = ({ layer, ...props }) => {
   );
 };
 
-export const PageHeader = ({ eyebrow, title, lead, children, testId }) => (
-  <header className="border-b border-[#e5e9ef] bg-white pb-12 pt-14 sm:pt-16" data-testid={testId}>
+export const ReadMore = ({ children, label = "En savoir plus", testId = "read-more" }) => {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  return (
+    <div className="mt-4">
+      <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen((o) => !o)}
+        className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#365ac8] underline-offset-4 hover:underline" data-testid={`${testId}-toggle`}>
+        {open ? "Réduire" : label}
+        <ChevronDown size={15} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+      </button>
+      <div id={id} hidden={!open} className="casa-fade mt-4 space-y-4 text-[#505e75]" data-testid={`${testId}-content`}>{children}</div>
+    </div>
+  );
+};
+
+export const Tabs = ({ tabs, label, testId = "tabs" }) => {
+  const [active, setActive] = useState(tabs[0].id);
+  const refs = useRef({});
+  const base = useId();
+  const onKey = (e, i) => {
+    const n = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+    if (n === undefined) return;
+    e.preventDefault();
+    const t = tabs[(n + tabs.length) % tabs.length];
+    setActive(t.id);
+    refs.current[t.id]?.focus();
+  };
+  return (
+    <div data-testid={testId}>
+      <div role="tablist" aria-label={label} className="no-scrollbar flex gap-2 overflow-x-auto border-b border-[#e5e9ef]">
+        {tabs.map((t, i) => (
+          <button key={t.id} ref={(el) => { refs.current[t.id] = el; }} type="button" role="tab" id={`${base}-${t.id}-tab`} aria-controls={`${base}-${t.id}`}
+            aria-selected={active === t.id} tabIndex={active === t.id ? 0 : -1} onClick={() => setActive(t.id)} onKeyDown={(e) => onKey(e, i)}
+            className={`-mb-px whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition-colors duration-150 ${active === t.id ? "border-[#365ac8] text-[#14243c]" : "border-transparent text-[#627086] hover:text-[#14243c]"}`}
+            data-testid={`${testId}-tab-${t.id}`}>{t.label}</button>
+        ))}
+      </div>
+      {tabs.map((t) => (
+        <div key={t.id} role="tabpanel" id={`${base}-${t.id}`} aria-labelledby={`${base}-${t.id}-tab`} hidden={active !== t.id} tabIndex={0}
+          className="pt-10 outline-none" data-testid={`${testId}-panel-${t.id}`}>{t.content}</div>
+      ))}
+    </div>
+  );
+};
+
+export const Pill = ({ children, className = "", ...props }) => (
+  <span className={`inline-flex items-center gap-1.5 rounded-full border border-[#e5e9ef] bg-white px-3 py-1 text-xs font-medium text-[#14243c] ${className}`} {...props}>{children}</span>
+);
+
+export const SummaryCard = ({ items, children, testId = "summary-card" }) => (
+  <div className="mt-10 rounded-[20px] border border-[#e5e9ef] bg-white p-7 sm:p-8" data-testid={testId}>
+    <dl className="grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+      {items.filter((it) => it.value).map((it) => (
+        <div key={it.label} data-testid={`${testId}-${it.key || it.label}`}>
+          <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-[#627086]">{it.label}</dt>
+          <dd className="mt-2.5 flex flex-wrap gap-2 text-sm">{it.value}</dd>
+        </div>
+      ))}
+    </dl>
+    {children && <div className="mt-8 border-t border-[#e5e9ef] pt-6">{children}</div>}
+  </div>
+);
+
+export const minutes = (m) => (m ? `~ ${m} min` : null);
+
+export const PageHeader = ({ eyebrow, title, lead, more, children, testId }) => (
+  <header className="border-b border-[#e5e9ef] bg-white pb-14 pt-16 sm:pb-20 sm:pt-24" data-testid={testId}>
     <Container>
       {eyebrow && <Eyebrow className="casa-reveal">{eyebrow}</Eyebrow>}
       <h1 className="casa-reveal mt-5 max-w-4xl text-4xl leading-[1.08] sm:text-5xl lg:text-[58px]">
@@ -64,6 +131,7 @@ export const PageHeader = ({ eyebrow, title, lead, children, testId }) => (
           {lead}
         </p>
       )}
+      {more && <ReadMore testId="header-more">{more}</ReadMore>}
       {children}
     </Container>
   </header>
@@ -75,13 +143,14 @@ export const ProgressBar = ({ value, testId }) => (
   </div>
 );
 
-export const SectionTitle = ({ eyebrow, title, lead, id }) => (
+export const SectionTitle = ({ eyebrow, title, lead, more, id }) => (
   <div className="max-w-3xl">
     {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
     <h2 id={id} className="mt-3 text-3xl sm:text-[39px] sm:leading-tight">
       {title}
     </h2>
     {lead && <p className="mt-4 text-base leading-relaxed text-[#505e75] md:text-lg">{lead}</p>}
+    {more && <ReadMore testId={`${id}-more`}>{more}</ReadMore>}
   </div>
 );
 

@@ -89,3 +89,18 @@ FARM web app, French UI. "CASA AI Academy" makes AI understandable to non-specia
 ## Backlog
 - P1: reviewers cannot approve their own versions (four-eyes rule); real email password reset.
 - P2: split admin.py and catalog_io.build_plan; analytics trends over time; CSV export of the change log.
+
+
+## Phase 6 — Lisibilité et respiration (Oct 2026) — DONE
+- Global airy tokens (.ui-airy, excluded from /admin): section padding 112/64/48px, paragraphs max 68ch, body 16.5px/1.68, card padding 30px, grid gaps 28px, max 3 dense cards per row.
+- Typography: Inter for titles/eyebrows/card titles/pills; Arial for body (admin titles included).
+- Shared components: Tabs (role=tablist, arrow/Home/End keys), ReadMore ("En savoir plus", aria-expanded), SummaryCard, PageHeader `more`.
+- Demo: technical mechanism behind "Voir le mécanisme technique"; layer details collapsed by default, one open at a time; persistence + tracking kept; demo shell padding fixed.
+- Module/concept pages: summary card (levels, estimated duration, layers, competencies, prerequisites) + tabs; module reader 68ch + sticky TOC.
+- Backend: estimated_minutes (≈200 words/min + 1 min per quiz question) on module, concept, course.
+- Line pictograms (lucide) for steps, layers, competency types, profiles.
+- Tested: iteration_6 — 100% backend & frontend.
+
+## Backlog
+- P1: per-section progress dots in module reader
+- P2: print-friendly module sheets

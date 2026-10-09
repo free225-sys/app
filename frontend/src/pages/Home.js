@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Picto } from "@/components/Pictos";
 
 const ROUTE = [["01", "◎", "Question et contexte"], ["02", "≡", "Analyse de la demande"], ["03", "▤", "Recherche documentaire"], ["04", "◇", "Traitement et génération"], ["05", "✓", "Réponse et références"]];
 
@@ -49,7 +50,7 @@ export default function Home() {
           <div className="audiences">
             {AUDIENCES.map((a) => (
               <article key={a.id} className="audience" data-testid={`profile-card-${a.id}`}>
-                <span className="a-num">{a.num}</span>
+                <span className="flex items-center justify-between"><span className="a-num">{a.num}</span><Picto id={a.id} size={20} /></span>
                 <h3>{a.title}</h3>
                 <p>{a.text}</p>
                 <Link className="line-link" to={a.to} data-testid={`profile-link-${a.id}`}>Explorer un exemple →</Link>

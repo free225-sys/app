@@ -1,0 +1,33 @@
+{
+  "summary": "Phase 6 — CASA AI Academy 'Lisibilité et respiration' fully validated. Backend: new /app/backend/tests/test_phase6.py (4/4 PASS) confirms GET /api/modules/M09, /api/concepts/concept-rag, /api/courses/C03 return estimated_minutes as int (M09=9min; concept-rag=1min; C03=sum of modules), M09 has levels [L2,L3] and prerequisite_modules [M02,M08], concept-rag treatment covers L0-L4, each C03 module exposes its own estimated_minutes, and learner login works. Regression test_phase5/4/2/backend still green (no changes required). Frontend verified at 1440x900 and 375x800 on public URL. Demo (/demo): technical mechanism button aria-expanded toggles correctly (false→true via click, Enter keyboard works), demo-technical-detail collapsed by default; all 6 layer accordions closed by default, opening one closes any previously open layer (verified), re-click on open layer closes it, step indicator persists across reload (2/7 remained 2/7 after full page reload), demo_layer_click event fires on selection, step navigation + arrow keys OK, no horizontal scroll at 375px. Module M09 page: SummaryCard shows 'L2 · L3', '~ 9 min', couches Données+Application, compétences Construire+Utiliser, prerequisites link to M02 and M08 (visible), 'Commencer le module' CTA renders with href=/modules/M09/learn. 3 tabs role=tablist/tab/tabpanel (Objectifs/Contenu/Évaluation), ArrowRight moves selection, Contenu tab shows resources+concepts+stages, Évaluation lists courses. Concept concept-rag: 3 tabs (Définition/Par niveau (L0-L4)/Liens), End key jumps to last tab, 5 level panels L0-L4 present, Liens tab shows stages+modules. Approche (3 ReadMore accordions: header-more + axes-title-more + model-title-more all toggle aria-expanded correctly), Parcours (1 header-more), Ressources (1 header-more + 5 filter controls work: search + étape + couche + niveau + compétence selects). Learner flow: login as apprenant@casa-academy.ci → /espace loads with compétences & parcours, /modules/M09/learn opens with sticky TOC side nav, /courses/C03 shows 10 occurrences of '~ N min' (per module minutes rendered). /verifier page loads intact. Footer 'by Relais IT' link (href=https://www.relaisit.com target=_blank) intact on all tested pages including /espace. Admin login OK, /admin loads with titles in Inter. Home h1 unchanged ('Comprendre ce qui se joue entre la question et la réponse.'), computed h1=Inter, body paragraphs=Arial, max body paragraph width 585px at 1440 (<70ch), 341px at 375px, no horizontal scroll at either width.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phase6.py",
+    "/app/test_reports/pytest/phase6.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "common.js Tabs component correctly implements role=tablist/tab/tabpanel + arrow/Home/End keyboard nav + aria-selected + roving tabIndex — meets WAI-ARIA tabs pattern.",
+    "common.js ReadMore uses aria-expanded + aria-controls + hidden attribute (not display:none), which is screen-reader friendly and preserves exact prototype texts in children.",
+    "Demo.js LayerPanel enforces single-open-layer invariant via parent perStep[step].layer state (not per-component local state), which also allows persistence across reload via sessionStorage — clean design.",
+    "backend/server.py count_words uses str.split() on bare strings only, correctly handles None via `if t`; module_minutes assumes 200 words/min; estimated_minutes = max(1, round(words/200)) — floor at 1 min avoids showing '0 min' for tiny concepts.",
+    "ModulePage renders ModuleCta inside SummaryCard via children slot — only module page uses this; concept page has no CTA by design (correct per spec which says 'action button visible' only for module).",
+    "LayerPanel.LAYER_PROTO is a hardcoded French text map kept in sync with proto; consider sourcing from backend to avoid drift, but acceptable for prototype fidelity.",
+    "No horizontal scroll at 375px verified on /demo, /modules/M09, /concepts/concept-rag, /ressources, / — overflow-x:hidden on html,body in index.css acts as safety net."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phase6.py (new, 4 tests)"
+  ],
+  "success_rate": { "backend": "100% (4/4 phase6)", "frontend": "100% of Phase 6 flows verified" },
+  "test_credentials": "Used seeded accounts from /app/memory/test_credentials.md as-is (apprenant@casa-academy.ci / Apprenant2026!, admin@casa-academy.ci / Admin2026!).",
+  "seed_data_creation": "None. test_phase6.py only performs GETs and learner login — no persistent catalog content created.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase 6 fully green. Key new testids verified: demo-technical-toggle, demo-technical-detail, layer-button-<layerId>, layer-detail, module-start-button, module-progress-summary, module-levels, module-duration, module-prereq-link-<id>, module-tabs(-tab-<id>|-panel-<id>), concept-duration, concept-tabs, concept-level-<Lx>, header-more-toggle/header-more-content, <sectionId>-more-toggle, read-more-toggle. ReadMore uses aria-expanded + hidden attribute. Tabs use proper WAI-ARIA. Login redirects admin→/espace by default (admin has learner role too); navigate to /admin explicitly if needing admin surface. 404 console errors on /espace are cosmetic (likely unused learner-specific sub-endpoints) and not blocking. Course modules each have estimated_minutes.",
+  "rca of the issue": "N/A — all Phase 6 flows passed on first run; no fixes required."
+}

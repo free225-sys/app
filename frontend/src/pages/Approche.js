@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { useCatalog } from "@/lib/api";
-import { BTN_PRIMARY, Container, LayerChip, Loading, PageHeader, SectionTitle } from "@/components/common";
+import { BTN_PRIMARY, Container, Loading, PageHeader, SectionTitle } from "@/components/common";
+import { Picto } from "@/components/Pictos";
 
 const MODEL = [
   { name: "Ressource", text: "Un contenu élémentaire : texte, schéma commenté, étude de cas, exercice guidé, fiche de synthèse." },
@@ -17,25 +18,27 @@ export default function Approche() {
   if (!catalog) return <Loading />;
   const axes = [
     { n: "01", title: "Le processus", lead: "Sept étapes, de la demande à la restitution.",
-      body: <ol className="space-y-1 text-sm">{catalog.stages.map((s) => <li key={s.id}><span className="mr-2 font-mono text-xs text-[#147c77]">{s.code}</span>{s.name}</li>)}</ol> },
+      body: <ol className="space-y-2.5 text-sm">{catalog.stages.map((s) => <li key={s.id} className="flex items-center gap-3"><Picto id={s.id} /><span className="font-mono text-xs text-[#147c77]">{s.code}</span>{s.name}</li>)}</ol> },
     { n: "02", title: "Les couches", lead: "Six couches transverses mobilisées à chaque étape.",
-      body: <div className="flex flex-wrap gap-1.5">{catalog.layers.map((l) => <LayerChip key={l.id} layer={l} />)}</div> },
+      body: <ul className="space-y-2.5 text-sm">{catalog.layers.map((l) => <li key={l.id} className="flex items-center gap-3"><Picto id={l.id} />{l.name}</li>)}</ul> },
     { n: "03", title: "La profondeur", lead: "Cinq niveaux, de la découverte à l'expertise.",
       body: <ol className="space-y-1 text-sm">{catalog.levels.map((l) => <li key={l.id}><span className="mr-2 font-mono text-xs text-[#147c77]">{l.id}</span>{l.name} — <span className="text-[#505e75]">{l.description}</span></li>)}</ol> },
     { n: "04", title: "Les compétences", lead: "Cinq types de compétences visées.",
-      body: <ul className="space-y-1 text-sm">{catalog.competencies.map((c) => <li key={c.id}><span className="font-semibold">{c.name}</span> — <span className="text-[#505e75]">{c.description}</span></li>)}</ul> },
+      body: <ul className="space-y-2.5 text-sm">{catalog.competencies.filter((c) => c.kind !== "referential").map((c) => <li key={c.id} className="flex items-center gap-3"><Picto id={c.id} /><span className="font-semibold">{c.name}</span></li>)}</ul> },
   ];
   return (
     <div data-testid="approche-page">
       <PageHeader eyebrow="Notre approche" title="Rendre visible ce qui est habituellement caché."
-        lead="Nous partons d'un fait simple : entre une question et une réponse, plusieurs traitements, données, modèles et choix technologiques interviennent. Les comprendre permet de mieux utiliser, concevoir et piloter l'IA." />
+        lead="Entre une question et une réponse, plusieurs traitements interviennent. Les comprendre, c'est mieux utiliser l'IA."
+        more={<p>Nous partons d'un fait simple : entre une question et une réponse, plusieurs traitements, données, modèles et choix technologiques interviennent. Les comprendre permet de mieux utiliser, concevoir et piloter l'IA.</p>} />
       <section className="py-16 sm:py-24" aria-labelledby="axes-title">
         <Container>
           <SectionTitle id="axes-title" eyebrow="Quatre axes" title="Chaque contenu est situé sur quatre axes."
-            lead="Une notion ou un module est toujours rattaché à une ou plusieurs étapes, à des couches, à des niveaux de profondeur et à des compétences. C'est ce qui permet de filtrer le catalogue et de composer des parcours cohérents." />
-          <div className="mt-12 grid gap-px border border-[#e5e9ef] bg-[#e5e9ef] md:grid-cols-2">
+            lead="Étapes, couches, niveaux et compétences situent chaque contenu."
+            more={<p>Une notion ou un module est toujours rattaché à une ou plusieurs étapes, à des couches, à des niveaux de profondeur et à des compétences. C'est ce qui permet de filtrer le catalogue et de composer des parcours cohérents.</p>} />
+          <div className="mt-12 grid gap-px overflow-hidden rounded-[20px] border border-[#e5e9ef] bg-[#e5e9ef] md:grid-cols-2">
             {axes.map((a) => (
-              <section key={a.n} className="bg-[#f7f8fa] p-7 sm:p-9" data-testid={`axis-${a.n}`}>
+              <section key={a.n} className="bg-white p-8 sm:p-10" data-testid={`axis-${a.n}`}>
                 <span className="font-mono text-sm text-[#627086]">{a.n}</span>
                 <h3 className="mt-2 text-2xl font-semibold">{a.title}</h3>
                 <p className="mt-1 text-sm text-[#505e75]">{a.lead}</p>
@@ -48,10 +51,11 @@ export default function Approche() {
       <section className="border-y border-[#e5e9ef] bg-white py-16 sm:py-24" aria-labelledby="model-title">
         <Container>
           <SectionTitle id="model-title" eyebrow="Organisation des contenus" title="Ressource, module, cours, parcours."
-            lead="Les contenus s'emboîtent à quatre niveaux. Un module est rédigé une seule fois et réutilisé dans plusieurs cours : une correction profite immédiatement à tous les parcours concernés." />
-          <ol className="mt-12 grid gap-4 md:grid-cols-4" data-testid="content-model">
+            lead="Quatre niveaux emboîtés : un module rédigé une fois sert plusieurs cours."
+            more={<p>Les contenus s'emboîtent à quatre niveaux. Un module est rédigé une seule fois et réutilisé dans plusieurs cours : une correction profite immédiatement à tous les parcours concernés.</p>} />
+          <ol className="mt-12 grid gap-7 sm:grid-cols-2 lg:grid-cols-4" data-testid="content-model">
             {MODEL.map((m, i) => (
-              <li key={m.name} className="relative border border-[#14243c]/20 p-6">
+              <li key={m.name} className="relative rounded-[17px] border border-[#e5e9ef] bg-white p-7">
                 <span className="font-mono text-xs text-[#627086]">Niveau {i + 1}</span>
                 <h3 className="mt-2 text-xl font-semibold">{m.name}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-[#505e75]">{m.text}</p>

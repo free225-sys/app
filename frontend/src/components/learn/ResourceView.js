@@ -34,7 +34,7 @@ export const ResourceView = ({ resource, index, total, completed, onComplete, on
         </a>
       </p>
     )}
-    <div className="mt-10 max-w-3xl space-y-10">
+    <div className="mt-10 max-w-[68ch] space-y-12">
       {(resource.sections || []).map((s) => (
         <section key={s.heading}>
           <h3 className="text-xl font-semibold">{s.heading}</h3>

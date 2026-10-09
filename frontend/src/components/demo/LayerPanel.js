@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Picto } from "@/components/Pictos";
 
 export const LAYER_PROTO = {
   "layer-application": "La couche applicative organise l’interaction, choisit les outils et présente les résultats. Module proposé : concevoir une interface d’IA.",
@@ -10,7 +11,6 @@ export const LAYER_PROTO = {
 };
 
 export const LayerPanel = ({ layers, activeIds, selectedId, onSelect }) => {
-  const selected = layers.find((l) => l.id === selectedId);
   return (
     <aside className="layerpanel" aria-labelledby="layers-title" data-testid="layer-panel">
       <div className="eyebrow">Architecture activée</div>
@@ -19,35 +19,36 @@ export const LayerPanel = ({ layers, activeIds, selectedId, onSelect }) => {
       <ul className="layers">
         {layers.map((l) => {
           const on = activeIds.includes(l.id);
+          const open = l.id === selectedId;
           return (
             <li key={l.id}>
-              <button type="button" className={`layer ${l.id === selectedId ? "active" : ""}`} aria-pressed={l.id === selectedId} onClick={() => onSelect(l.id)} data-testid={`layer-button-${l.id}`}>
+              <button type="button" className={`layer ${open ? "active" : ""}`} aria-expanded={open} aria-controls={`layer-detail-${l.id}`} onClick={() => onSelect(l.id)} data-testid={`layer-button-${l.id}`}>
                 <span className={`dot ${on ? "on" : ""}`} aria-hidden="true" />
-                <span>
+                <span className="flex-1">
                   <strong data-testid={on ? `layer-active-${l.id}` : `layer-related-${l.id}`}>{l.name} {on ? "· mobilisée" : "· connexe"}</strong>
                   <small>{l.short}</small>
                 </span>
+                <Picto id={l.id} size={15} />
               </button>
+              {open && (
+                <div id={`layer-detail-${l.id}`} className="layerdetail casa-fade" data-testid="layer-detail">
+                  <b>{l.name}</b>
+                  <p data-testid="layer-detail-definition">{LAYER_PROTO[l.id] || l.definition}</p>
+                  {l.example && <p className="!mt-0" data-testid="layer-detail-example"><em>Exemple :</em> {l.example}</p>}
+                  {l.modules?.length > 0 && (
+                    <p className="!mt-0" data-testid="layer-detail-modules">
+                      Modules : {l.modules.slice(0, 4).map((m, i) => (
+                        <span key={m.id}>{i > 0 && ", "}<Link to={`/modules/${m.id}`} className="!text-[11px] underline" data-testid={`layer-module-link-${m.id}`}>{m.code}</Link></span>
+                      ))}
+                    </p>
+                  )}
+                  <Link to={`/ressources?vue=notions&couche=${l.id}`} data-testid="layer-concepts-link">Voir les notions associées ↗</Link>
+                </div>
+              )}
             </li>
           );
         })}
       </ul>
-      <div className="layerdetail" aria-live="polite" data-testid="layer-detail">
-        {selected && (
-          <>
-            <b>{selected.name}</b>
-            <p data-testid="layer-detail-definition">{LAYER_PROTO[selected.id] || selected.definition}</p>
-            {selected.modules?.length > 0 && (
-              <p className="!mt-0" data-testid="layer-detail-modules">
-                Modules : {selected.modules.slice(0, 4).map((m, i) => (
-                  <span key={m.id}>{i > 0 && ", "}<Link to={`/modules/${m.id}`} className="!text-[11px] underline" data-testid={`layer-module-link-${m.id}`}>{m.code}</Link></span>
-                ))}
-              </p>
-            )}
-            <Link to={`/ressources?vue=notions&couche=${selected.id}`} data-testid="layer-concepts-link">Voir les notions associées ↗</Link>
-          </>
-        )}
-      </div>
       <div className="note">Les mécanismes affichés constituent une simulation pédagogique. Les traitements réels dépendent de l'architecture et ne sont pas toujours séquentiels.</div>
     </aside>
   );

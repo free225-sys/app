@@ -91,6 +91,22 @@ def sort_levels(levels) -> List[str]:
     return sorted(set(levels), key=LEVEL_ORDER.index)
 
 
+def count_words(*texts) -> int:
+    return sum(len(str(t or "").split()) for t in texts)
+
+
+async def module_minutes(mod: dict) -> int:
+    res = await db.resources.find({"_id": {"$in": mod.get("resource_ids", [])}}).to_list(100)
+    words = sum(count_words(sec.get("heading"), sec.get("body")) for r in res for sec in r.get("sections") or [])
+    questions = 0
+    for suffix in ("F", "G"):
+        a = await db.assessments.find_one({"_id": f"A-{mod['id']}-{suffix}"})
+        if a and a.get("published_version"):
+            v = await db.assessment_versions.find_one({"entity_id": a["_id"], "version": a["published_version"]})
+            questions += len((v or {}).get("questions", []))
+    return max(1, round(words / 200 + questions))
+
+
 def module_summary(mod: dict) -> dict:
     keys = ["id", "code", "title", "summary", "levels", "layer_ids", "stage_ids", "competency_ids", "duration_hours", "version", "status"]
     s = {k: mod.get(k) for k in keys}
@@ -234,6 +250,8 @@ async def get_concept(concept_id: str):
     concept["prerequisites"] = pick(concepts, concept["prerequisite_ids"], ["id", "name", "short"])
     concept["modules"] = pick(modules, concept["module_ids"], ["id", "code", "title", "levels", "summary"])
     concept["dependents"] = [{"id": c["id"], "name": c["name"]} for c in concepts if concept_id in c["prerequisite_ids"]]
+    concept["estimated_minutes"] = max(1, round(count_words(concept["definition"], concept["example"], *(concept.get("treatment") or {}).values()) / 200))
+    concept["competencies"] = pick(await all_docs("competencies"), concept["competency_ids"], ["id", "name", "category_id"])
     return concept
 
 
@@ -257,8 +275,9 @@ async def get_module(module_id: str):
     stages, layers, comps = await all_docs("stages"), await all_docs("layers"), await all_docs("competencies")
     mod["stages"] = pick(stages, mod["stage_ids"], ["id", "code", "name"])
     mod["layers"] = pick(layers, mod["layer_ids"], ["id", "name", "color", "short"])
-    mod["competencies"] = pick(comps, mod["competency_ids"], ["id", "name", "description"])
+    mod["competencies"] = pick(comps, mod["competency_ids"], ["id", "name", "description", "category_id"])
     mod["prerequisite_modules"] = pick(modules, mod["prerequisite_module_ids"], ["id", "code", "title"])
+    mod["estimated_minutes"] = await module_minutes(mod)
     concepts = await all_docs("concepts", "_id")
     mod["concepts"] = [{"id": c["id"], "name": c["name"], "short": c["short"]} for c in concepts if module_id in c["module_ids"]]
     courses = await published("courses", "course_versions")
@@ -303,7 +322,8 @@ async def course_detail(course: dict, modules: List[dict]) -> dict:
     for mid in course["module_ids"]:
         mod = pinned(versions, mid, pins.get(mid)) or by_id.get(mid)
         if mod:
-            course["modules"].append({**module_summary(mod), "pinned_version": mod["version"], "optional": mid in optional})
+            course["modules"].append({**module_summary(mod), "pinned_version": mod["version"], "optional": mid in optional, "estimated_minutes": await module_minutes(mod)})
+    course["estimated_minutes"] = sum(m["estimated_minutes"] for m in course["modules"])
     return course
 
 
