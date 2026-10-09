@@ -21,7 +21,7 @@ html {
 
 body {
     margin: 0;
-    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+    font-family: Inter, Arial, sans-serif;
     background: #f9fafb;
     color: var(--ink);
     line-height: 1.46;
@@ -29,12 +29,14 @@ body {
 }
 
 h1, h2, h3 {
-    font-family: Georgia, "Times New Roman", serif !important;
-    font-weight: 400 !important;
-    letter-spacing: -0.02em !important;
+    font-family: Inter, Arial, sans-serif !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.015em;
 }
 
-h1 { letter-spacing: -0.035em !important; }
+h1, h2 { letter-spacing: -0.02em !important; }
+
+button, input, select, textarea { font-family: inherit; }
 
 [class*="border-[#e5e9ef]"].bg-white:not(input):not(select):not(textarea):not(button):not(span):not(tr):not(td) {
     border-radius: 17px;

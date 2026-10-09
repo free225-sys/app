@@ -11,6 +11,8 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from reportlab.lib.colors import HexColor
 from reportlab.lib.pagesizes import A4, landscape
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 from auth import User, get_current_user, require_roles
@@ -101,6 +103,9 @@ async def claim(cid: str, user: User = Depends(get_current_user)):
 
 
 LOGO = str(Path(__file__).parent / "assets" / "logo-casa.png")
+FONTS = Path(__file__).parent / "assets" / "fonts"
+pdfmetrics.registerFont(TTFont("Inter", str(FONTS / "Inter-Regular.ttf")))
+pdfmetrics.registerFont(TTFont("Inter-SemiBold", str(FONTS / "Inter-SemiBold.ttf")))
 
 
 def render_pdf(a: dict) -> bytes:
@@ -117,21 +122,21 @@ def render_pdf(a: dict) -> bytes:
     c.setFillColor(HexColor("#e8e9f7"))
     c.roundRect(64 + lw + 10, h - 101, 92, 20, 5, stroke=0, fill=1)
     c.setFillColor(HexColor("#5845ba"))
-    c.setFont("Helvetica-Bold", 10)
+    c.setFont("Inter-SemiBold", 10)
     c.drawString(64 + lw + 18, h - 94, "AI ACADEMY")
     c.setFillColor(green)
-    c.setFont("Helvetica-Bold", 10)
+    c.setFont("Inter-SemiBold", 10)
     c.drawString(64, h - 170, "CERTIFICAT")
     c.setFillColor(navy)
-    c.setFont("Helvetica-Bold", 30)
+    c.setFont("Inter-SemiBold", 30)
     c.drawString(64, h - 210, a["credential_title"])
-    c.setFont("Helvetica", 12)
+    c.setFont("Inter", 12)
     c.setFillColor(muted)
     c.drawString(64, h - 250, "Décerné à")
     c.setFillColor(navy)
-    c.setFont("Helvetica-Bold", 24)
+    c.setFont("Inter-SemiBold", 24)
     c.drawString(64, h - 282, a["holder_name"])
-    c.setFont("Helvetica", 11)
+    c.setFont("Inter", 11)
     c.setFillColor(muted)
     c.drawString(64, h - 316, "Sur la base des preuves de compétences suivantes :")
     c.setFillColor(navy)
@@ -144,19 +149,19 @@ def render_pdf(a: dict) -> bytes:
     c.line(64, 150, w - 64, 150)
     for x, label, value in [(64, "Date de délivrance", f"{issued[2]}/{issued[1]}/{issued[0]}"), (260, "Code de vérification", a["code"]),
                             (480, "Vérifier en ligne", a["verification_url"])]:
-        c.setFont("Helvetica", 9)
+        c.setFont("Inter", 9)
         c.setFillColor(muted)
         c.drawString(x, 128, label)
-        c.setFont("Helvetica-Bold" if x < 480 else "Helvetica", 11 if x < 480 else 9)
+        c.setFont("Inter-SemiBold" if x < 480 else "Inter", 11 if x < 480 else 9)
         c.setFillColor(navy)
         c.drawString(x, 112, value)
-    c.setFont("Helvetica", 9)
+    c.setFont("Inter", 9)
     c.setFillColor(muted)
     c.drawString(64, 52, "CASA AI Academy — by")
-    x0 = 64 + c.stringWidth("CASA AI Academy — by ", "Helvetica", 9)
+    x0 = 64 + c.stringWidth("CASA AI Academy — by ", "Inter", 9)
     c.setFillColor(HexColor("#365ac8"))
     c.drawString(x0, 52, "Relais IT")
-    c.linkURL("https://www.relaisit.com", (x0, 48, x0 + c.stringWidth("Relais IT", "Helvetica", 9), 62), relative=0)
+    c.linkURL("https://www.relaisit.com", (x0, 48, x0 + c.stringWidth("Relais IT", "Inter", 9), 62), relative=0)
     c.setFillColor(muted)
     c.drawRightString(w - 64, 52, f"Certification {a['credential_id']} · version {a['credential_version']}")
     c.showPage()
