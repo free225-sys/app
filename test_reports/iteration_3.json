@@ -1,0 +1,24 @@
+{
+  "summary": "Phase 3 end-to-end validated. Backend smoke /app/backend/tests/phase3_smoke.py passes (enroll, recognition, 400 claim with 2/3 proofs, project submit+review, award, PDF, verify valid/revoked/not_found, invalidate evidence → dependent certificate revoked + eligibility lost). Phases 1-2 regression unchanged: pytest 34/34 (test_backend.py + test_phase2.py). Frontend Phase 3 flows verified end-to-end on preview URL: /pathways/P01 enroll shows pathway-enrolled + pathway-percent 0 %; after completing M09 via API, /pathways/P02 enroll shows recognized-module-C03-M09 'Acquis reconnu', pathway-recognized-summary '2 module(s) et 2 compétence(s) reconnus automatiquement', recognized-competency-comp-construire; /modules/M16/learn?etape=projet shows project-rubric and after title+description submit, submission appears with status 'En attente d'évaluation'; evaluator (evaluator@casa-academy.ci) at /evaluation sees the submission, grading all criteria at level 1 then clicking Valider yields grade-error 'Score insuffisant pour valider (33 % < 60 %)', then grading all level 3 (100 %) validates; learner /espace shows credential-progress-CERT-CONC '3/3 preuves', attainment-comp-construire-M16-project row, claim succeeds → credential-award-CERT-CONC + credential-download-CERT-CONC + verify link to /verifier/CODE; /verifier/CODE shows 'Certificat valide', /verifier/CASA-XXXX-0000 shows 'Aucun certificat ne correspond à ce code', /verifier form works lowercased input; admin (admin@casa-academy.ci) /admin lists admin-award-{code}, filling admin-reason + admin-revoke → /verifier/CODE shows 'Certificat révoqué' with revoked info 'date — motif'. Access control: /evaluation as plain learner displays 'réservée aux évaluateurs' message; GET /api/evaluation/submissions → 403; GET /api/admin/certificates → 403; GET /api/projects/submissions/{sid}/file by another learner → 403. Footer 'by Relais IT (www.relaisit.com)' present on /pathways/P02, /espace, /verifier, /admin, /evaluation. Mobile 390×844 /pathways/P02 and /espace: no horizontal overflow.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/phase3_smoke.py",
+    "/app/backend/tests/test_phase2.py",
+    "/app/backend/tests/test_backend.py",
+    "/app/test_reports/pytest/pytest_phase2.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Phase3 code is clean: pathways_api.py / projects.py / certificates.py use async + Pydantic + proper 400/403/404 responses, exclude _id, and build eligibility server-side. verification_url is derived from PUBLIC_APP_URL env — good. Frontend components have exhaustive data-testid coverage. No action required.",
+    "Minor (carried from iter 2): auth.py brute-force lockout still identifies by request.client.host+email across pods — not fixed yet, outside Phase 3 scope."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (34/34 pytest + phase3 smoke OK)", "frontend": "100% of Phase 3 flows + regression"},
+  "test_credentials": "admin@casa-academy.ci / Admin2026!, apprenant@casa-academy.ci / Apprenant2026!, evaluator@casa-academy.ci / Evaluateur2026!. For this run a fresh learner TEST_p3ui_<rand>@ex.ci / Motdepasse1 was registered.",
+  "seed_data_creation": "Fresh learner registered via API; M09+M14 completed by iterating resources + submitting A-M09-G/A-M14-G attempts with correct answers from DB (pymongo). One M16 project submitted via UI and reviewed by evaluator (score 100 %). One certificate CASA-FSAF-T7SS claimed then revoked.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase 3 fully green. Backend smoke /app/backend/tests/phase3_smoke.py and pytest /app/backend/tests/ both pass. UI selectors used: pathway-page, pathway-enroll-button, pathway-enrolled, pathway-percent, recognized-module-{cid}-{mid}, pathway-recognized-summary, recognized-competency-{compId}, project-panel, project-rubric, project-title-input, project-description-input, project-submit-button, submission-status-*, evaluation-page, nav-link-evaluation, evaluation-submission-{sid}, grade-{sid}-{crit}-{score}, grade-comment-{sid}, grade-percent-{sid}, grade-error-{sid}, grade-validate-{sid}, credential-progress-{credId}, credential-claim-{credId}, credential-award-{credId}, credential-download-{credId}, credential-verify-link-{credId}, attainment-comp-{compId}-{moduleId}-{assessmentId|project}, verify-page, verify-form, verify-code-input, verify-submit-button, verify-result, verify-status, verify-holder, verify-revoked-info, admin-page, admin-award-{code}, admin-reason-{code}, admin-revoke-{code}, admin-invalidate-{code}-{ruleId}. Only pre-existing issue is auth brute-force lockout from iter2 (not phase 3).",
+  "rca of the issue": "N/A — all Phase 3 flows passed on first run."
+}

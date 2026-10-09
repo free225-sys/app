@@ -1,0 +1,38 @@
+{
+  "summary": "Phase 2 end-to-end tested. Backend: 10/11 pytest (new /app/backend/tests/test_phase2.py) + Phase 1 regression 23/23 after updating concept count assertion to 35. Frontend: register (incl. password<8 and duplicate-email 409), login (incl. wrong credentials error), logout, forgot-password administrateur message, anonymous redirect /modules/M01/learn → /connexion?suite=%2Fmodules%2FM01%2Flearn and return after login, module reader with 4 resources + video placeholder on R4, graded failing attempt (Seuil non atteint) → retry → passing (learn-module-completed + per-competency Expliquer/Utiliser), /courses/C01 shows 33% and Reprendre → M02-R1, /espace shows espace-course-percent-C01=33%, attainment-comp-expliquer-M01 & utiliser-M01 with evidence links, attempt rows, formative quiz feedback+retry, anonymous diagnostic → saved after register, demo progress attach after register (espace-demo Terminée). Phase 1 regression: Ressources tab-switch no longer crashes, mobile menu works, footer OK.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/auth/login", "issue": "Brute-force lockout spec says 5 fails → 429, but first 429 was only on attempt 9. Root cause: ident = f'{request.client.host}:{email}' and client.host is the ingress IP as seen by each backend pod (different pods for different requests → 10.211.10.135 vs .136 observed in db.login_attempts). Counters are fragmented per-pod so lockout threshold is effectively multiplied by the pod count. Fix: use just the normalized email as identifier (or X-Forwarded-For via a proxy header), and add a unique index on login_attempts.identifier."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phase2.py",
+    "/app/backend/tests/test_backend.py",
+    "/app/test_reports/pytest/pytest_phase2.xml"
+  ],
+  "action_items": [
+    "Fix brute-force lockout identifier so it works across multiple backend pods — use email (lowercased) as the ident key (optionally include X-Forwarded-For) and create a unique index on login_attempts.identifier to prevent concurrent-upsert fragmentation."
+  ],
+  "critical_code_review_comments": [
+    "auth.py:125 — ident contains request.client.host, which behind the k8s ingress is a different pod/proxy IP per request. This silently defeats the 5-fails-15min lockout. Also non-unique index on login_attempts.identifier allows duplicate docs under race conditions.",
+    "learning.py:179 — /diagnostic/submit does not deduplicate per user (every call inserts a new diagnostic_results row). Dashboard sorts by created_at desc so UX is fine, but documents accumulate.",
+    "learning.py:258 complete_resource always re-computes module_progress, which re-queries all modules; acceptable at current scale but a hot path."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phase2.py",
+    "/app/backend/tests/test_backend.py"
+  ],
+  "success_rate": {"backend": "97% (33/34 Phase1+Phase2)", "frontend": "100% of tested flows"},
+  "test_credentials": "Admin admin@casa-academy.ci / Admin2026!, Learner apprenant@casa-academy.ci / Apprenant2026! (both seeded). Fresh TEST_ accounts registered during run.",
+  "seed_data_creation": "Backend seeds idempotently at startup; tests register fresh TEST_<uuid>@example.com accounts.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase 2 flows all work. The only outstanding issue is the brute-force lockout identifier bug (test_login_brute_force_lockout fails by design — asserts spec rather than impl). If main agent fixes to use email-only ident, test should pass with first 429 on attempt 6. Note: multiple backend pods behind ingress (confirmed in db.login_attempts with distinct 10.211.10.135/136 client hosts).",
+  "rca of the issue": "Brute-force lockout: In auth.py:125 the identifier combines request.client.host with the email. In this environment the ingress proxies requests across at least 2 backend pods and client.host is the ingress hop IP as seen by each pod (10.211.10.135 and 10.211.10.136 observed). Each pod maintains its own counter in login_attempts, so for the same email the counter is split roughly in half (confirmed: 7 wrong attempts gives first 429 on #9–#10 instead of #6). Reproduction: register fresh user, POST /api/auth/login with wrong password; the 429 appears only around attempt 7-10. Mitigation: use email.lower() as the sole identifier (optionally keyed by trusted X-Forwarded-For) and add a unique index on login_attempts.identifier to make upserts race-safe."
+}

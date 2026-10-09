@@ -1,0 +1,37 @@
+{
+  "summary": "Phase 5 (CASA AI Academy — Relais IT footer, prototype UX, catalogue K/M-00x/CO-00x/P-00x/CERT-DOC-01, import/export, delete draft, markdown) fully validated. New pytest suite /app/backend/tests/test_phase5.py = 17/17 PASS: catalog content (M01+M-001..3, CO-001/CO-002, P-001/P-002, CERT-DOC-01, K-001..K-003), export shape has the 12 required keys, re-import of own export → 0 create/0 update/0 unchanged errors, broken concept ref 'C-999' → errors listed in preview + confirm=true returns 422 'Import refusé', author 403 on export AND import, lead confirm of tiny course-title change creates a draft which is then DELETE-able (cleanup done), author can create and delete own concept draft, DELETE on published M01 v1 → 409, CERT-DOC-01: fresh learner claim without evidence → 400 with 'non remplies' message, full happy path (complete A-005 + pass graded A-M-003-G with correct answers Q-M-003-G1=b/G2=b/G3=a,b,d/G4=b/G5=a → 100%) → attainments K-001 L1 + K-003 L1 → claim 200 valid 'CASA-...' code, M-001 confirmed no graded assessment. Certificate PDF validated via pypdf text extraction: contains 'by Relais IT', visible 'www.relaisit.com' absent, raw bytes contain 'https://www.relaisit.com' link annotation. Regression test_backend.py: fixed obsolete '==16' module-count assertion → '>=16' (catalog now has 19 modules); test_backend.py+test_phase2.py+test_phase4.py = 72/72 PASS. Frontend verified at preview URL at 1920x1080 & 375x812: footer 'by Relais IT' + no 'www.relaisit.com' visible text on /, /demo, /parcours, /verifier; footer link href=https://www.relaisit.com target=_blank rel=noopener; header shows all 5 nav links + 'Essayer la démo ↗' + logo /logo-casa.png + 'AI ACADEMY' pill; home eyebrow and h1 match spec exactly ('Comprendre ce qui se joue entre la question et la réponse.'), route-cards 01..05 + 4 profile-cards (decouvrir→/pathways/P01, utiliser→/pathways/P-001, concevoir→/pathways/P02, piloter→/parcours) + home-diagram all present; computed h1 font-family contains 'Georgia', body 'Arial', body bg rgb(249,250,251) (not ivory #FAF8F3), button border-radius 10px; demo chip switch to 'casa-requete-generale' changes URL (?cas=casa-requete-generale) and case title; step 3 title='Retrouver des sources pertinentes'; step 1 (JO) → application/donnees/securite layer-active-* ('mobilisée'), math/modeles/infra layer-related-* ('connexe'); layer-concepts-link href=/ressources?vue=notions&couche=layer-application; step 7 next='Recommencer ↻', indicator='7 / 7', demo-callout-pathway→/pathways/P-001, demo-end rendered; Markdown.js on /modules/M-001/learn?etape=A-001 renders <strong> and <ul> inside [data-testid=markdown].",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phase5.py",
+    "/app/backend/tests/test_phase4.py",
+    "/app/backend/tests/test_backend.py",
+    "/app/backend/tests/test_phase2.py",
+    "/app/test_reports/pytest/phase5.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "backend/admin.py now 716 lines — still above the recommended 700-line soft cap flagged in iteration 4. Suggest splitting workflow / users / analytics / migrate modules; still functional and readable.",
+    "catalog_io.build_plan is ~175 lines in a single function with many nested loops and ad-hoc maps (cmap, amap, concept_links, mgraph, cgraph). Logic is correct but hard to review; splitting into per-type helpers (import_concepts, import_modules, …) would improve maintainability.",
+    "certificates.render_pdf uses c.linkURL with a tight 14px-high rectangle that only covers 'Relais IT'; functional. The visible text 'www.relaisit.com' was removed from the PDF per Phase 5A as required — confirmed in extracted text.",
+    "catalog_io export writes layers as a sorted list of LAYER codes and 'reuse_rule' as a hardcoded ASCII (no accents) string — matches round-trip import exactly, so re-import is noop, good.",
+    "test_backend.py had a hardcoded '==16' module count assertion that silently broke with the new M-001..M-003 modules; relaxed to '>=16'. Consider refactoring to assert on expected IDs rather than count to prevent similar brittleness.",
+    "Public API shape of /api/certificates/{code}/pdf: no 'by Relais IT' visible in response headers (good), link annotation to https://www.relaisit.com is embedded — matches spec.",
+    "ImportExport.js correctly disables 'Confirmer' when preview has errors or imported=true, but after a successful confirm the author must manually re-upload to retry — consider auto-clearing file state."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phase5.py (new, 17 tests)",
+    "/app/backend/tests/test_backend.py (relaxed modules count assertion from ==16 to >=16)"
+  ],
+  "success_rate": { "backend": "100% (17/17 phase5 + 72/72 regression)", "frontend": "100% of Phase 5 flows verified" },
+  "test_credentials": "Seeded accounts from /app/memory/test_credentials.md used as-is. Fresh learners registered as test-learner-<sfx>@casa-academy.ci (left in DB; cleanup not required per spec — they only hold one graded_attempt + one attainment + one award; prefixed 'test-').",
+  "seed_data_creation": "Each test_phase5 run creates: one concept test-c-<sfx>@1 draft (deleted by same test), one course draft on CO-001/CO-002 (deleted by same test), 2 fresh learner accounts with CERT-DOC-01 awards (one failed, one valid). No lingering DRAFT content left after suite.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase 5 fully green. test_phase5.py uses pypdf for PDF text extraction (pip-installed). Key endpoints exercised: GET /api/modules|/courses|/pathways|/credentials; GET/POST /api/admin/catalog/export|import[?confirm=true]; POST /api/admin/content/concept; DELETE /api/admin/versions/{t}/{eid}/{v}; GET /api/admin/versions/{t}/{eid}; POST /api/credentials/CERT-DOC-01/claim; POST /api/learners/me/resources/{aid}/complete; POST /api/assessments/A-M-003-G/attempts; GET /api/certificates/{code}/pdf. Frontend verified test-ids: footer-relais-it(-link), nav-link-*, header-demo-cta, casa-logo(-image), home-title/hero-cta-*/route-card-01..05/profile-card-*/profile-link-*/home-diagram, demo-page/-case-casa-*/-steps-pill/-case-title/-step-title/-step-indicator/-prev-button/-next-button/-callout-pathway/-end, stepper-step-1..7, layer-active-layer-*/layer-related-layer-*/layer-concepts-link, markdown. Login testids are login-email-input/-password-input/-submit-button (NOT login-email/-password/-submit). Phase 5A/B/C/D all pass.",
+  "rca of the issue": "N/A — all Phase 5 flows passed. Only two incidental test fixes: (1) email-validator rejects '.test' TLD → used '@casa-academy.ci' which is accepted; (2) PDF content streams are compressed/encoded so raw-bytes substring search fails for 'Relais IT' → used pypdf.PdfReader to extract text properly and assert on 'Relais IT' present and 'www.relaisit.com' absent."
+}

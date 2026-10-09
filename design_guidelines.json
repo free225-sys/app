@@ -1,0 +1,261 @@
+{
+  "project_name": "CASA AI Academy",
+  "app_type": "hybrid_fullstack (marketing_site + interactive learning web app)",
+  "language": "fr-FR",
+  "design_identity": {
+    "style": "Cabinet de Conseil & Haute Rigueur Pédagogique",
+    "tone": "Sobre, analytique, rassurant, intellectuellement précis, sans jargon inutile, zéro mascotte ni avatar",
+    "theme": "Light mode par défaut, fond ivoire chaleureux, typographie bleu nuit profonde, contraste textuel accessible APCA/WCAG AAA"
+  },
+  "colors": {
+    "background_primary": "#FAF8F3",
+    "background_surface": "#FFFFFF",
+    "background_card_alt": "#F3EFE6",
+    "background_subtle": "#EFEAE1",
+    "text_primary": "#14213D",
+    "text_secondary": "#3B4E6C",
+    "text_muted": "#5C6F84",
+    "border_subtle": "#E2DCD2",
+    "border_focus": "#1F5E4A",
+    "accent_primary": "#1F5E4A",
+    "accent_primary_hover": "#174637",
+    "accent_primary_light": "#E8F2EE",
+    "accent_secondary": "#6B8FB5",
+    "accent_secondary_hover": "#54759A",
+    "accent_secondary_light": "#EDF3F8",
+    "six_layers": {
+      "application": {
+        "id": "application",
+        "name": "Application",
+        "hex": "#1F5E4A",
+        "bg_soft": "bg-[#E8F2EE]",
+        "border": "border-[#1F5E4A]",
+        "text": "text-[#1F5E4A]",
+        "badge_class": "bg-[#E8F2EE] text-[#1F5E4A] border border-[#1F5E4A]/30"
+      },
+      "donnees": {
+        "id": "donnees",
+        "name": "Données",
+        "hex": "#6B8FB5",
+        "bg_soft": "bg-[#EDF3F8]",
+        "border": "border-[#6B8FB5]",
+        "text": "text-[#2B547E]",
+        "badge_class": "bg-[#EDF3F8] text-[#2B547E] border border-[#6B8FB5]/30"
+      },
+      "mathematiques": {
+        "id": "mathematiques",
+        "name": "Mathématiques",
+        "hex": "#8B5E83",
+        "bg_soft": "bg-[#F5EDF3]",
+        "border": "border-[#8B5E83]",
+        "text": "text-[#67365F]",
+        "badge_class": "bg-[#F5EDF3] text-[#67365F] border border-[#8B5E83]/30"
+      },
+      "modeles": {
+        "id": "modeles",
+        "name": "Modèles",
+        "hex": "#B46534",
+        "bg_soft": "bg-[#FAEDE5]",
+        "border": "border-[#B46534]",
+        "text": "text-[#8E4417]",
+        "badge_class": "bg-[#FAEDE5] text-[#8E4417] border border-[#B46534]/30"
+      },
+      "infrastructure": {
+        "id": "infrastructure",
+        "name": "Infrastructure",
+        "hex": "#475569",
+        "bg_soft": "bg-[#EEF2F6]",
+        "border": "border-[#475569]",
+        "text": "text-[#334155]",
+        "badge_class": "bg-[#EEF2F6] text-[#334155] border border-[#475569]/30"
+      },
+      "securite_gouvernance": {
+        "id": "securite_gouvernance",
+        "name": "Sécurité & Gouvernance",
+        "hex": "#A04444",
+        "bg_soft": "bg-[#FBECEC]",
+        "border": "border-[#A04444]",
+        "text": "text-[#7E2828]",
+        "badge_class": "bg-[#FBECEC] text-[#7E2828] border border-[#A04444]/30"
+      }
+    }
+  },
+  "typography": {
+    "font_family_primary": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif",
+    "font_family_mono": "'JetBrains Mono', 'IBM Plex Mono', 'Courier New', monospace",
+    "scale": {
+      "hero_h1": "text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-[#14213D] leading-[1.12]",
+      "section_h2": "text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-[#14213D] leading-tight",
+      "subsection_h3": "text-xl sm:text-2xl font-semibold text-[#14213D]",
+      "card_h4": "text-lg sm:text-xl font-medium text-[#14213D]",
+      "body_lead": "text-lg sm:text-xl text-[#3B4E6C] leading-relaxed",
+      "body": "text-base text-[#3B4E6C] leading-relaxed",
+      "caption": "text-sm text-[#5C6F84]",
+      "eyebrow": "text-xs font-semibold uppercase tracking-[0.18em] text-[#1F5E4A]",
+      "simulated_tag": "text-xs font-mono font-medium uppercase px-2.5 py-1 rounded bg-[#F3EFE6] text-[#5C6F84] border border-[#E2DCD2]"
+    }
+  },
+  "navigation": {
+    "header_style": "sticky top-0 z-50 backdrop-blur-md bg-[#FAF8F3]/90 border-b border-[#E2DCD2] px-6 py-4",
+    "logo": {
+      "component": "CasaLogo",
+      "text": "CASA AI Academy",
+      "subtitle": "Formation & Décision Stratégique IA",
+      "classes": "text-xl font-bold tracking-tight text-[#14213D] flex items-center gap-2"
+    },
+    "nav_links": [
+      { "label": "Découvrir", "href": "/demo", "test_id": "nav-link-decouvrir" },
+      { "label": "Parcours", "href": "/parcours", "test_id": "nav-link-parcours" },
+      { "label": "Notre approche", "href": "/approche", "test_id": "nav-link-approche" },
+      { "label": "Ressources", "href": "/ressources", "test_id": "nav-link-ressources" }
+    ],
+    "secondary_link": {
+      "label": "Se connecter",
+      "href": "/connexion",
+      "badge": "Bientôt disponible",
+      "test_id": "nav-link-connexion"
+    },
+    "primary_cta": {
+      "label": "Explorer la démonstration",
+      "href": "/demo",
+      "test_id": "nav-cta-demo"
+    }
+  },
+  "footer": {
+    "container_style": "bg-[#14213D] text-[#FAF8F3] border-t border-[#14213D] py-16 px-6",
+    "mandatory_attribution": {
+      "text": "CASA AI Academy — Plateforme d'acculturation et de maîtrise stratégique de l'IA.",
+      "by_label": "by Relais IT",
+      "url": "https://www.relaisit.com",
+      "test_id": "footer-relais-it-link"
+    }
+  },
+  "components": {
+    "CasaLogo": {
+      "path": "src/components/CasaLogo.js",
+      "description": "Composant logo textuel sobre 'cabinet de conseil' interchangeable"
+    },
+    "Header": {
+      "path": "src/components/Header.js",
+      "description": "Barre de navigation principale, visible sur desktop avec liens et CTA"
+    },
+    "Footer": {
+      "path": "src/components/Footer.js",
+      "description": "Pied de page institutionnel avec mention obligatoire 'by Relais IT'"
+    },
+    "InteractiveDemoStepper": {
+      "path": "src/components/demo/InteractiveDemoStepper.js",
+      "description": "Stepper 7 étapes avec indicateur n/7, boutons précédent/suivant, saut d'étape direct, zone visuelle centrale, explication métier et volet technique rétractable"
+    },
+    "LayerSidePanel": {
+      "path": "src/components/demo/LayerSidePanel.js",
+      "description": "Volet latéral interactif des 6 couches transverses (surbrillance de la couche active, définition, exemple concret, modules reliés)"
+    },
+    "ScenarioBanner": {
+      "path": "src/components/demo/ScenarioBanner.js",
+      "description": "Encadré formel du cas d'usage réel simulé (Journal officiel de Côte d'Ivoire du 2 mai 2002 - Café/Cacao) avec label 'Illustration simulée'"
+    },
+    "FormativeQuiz": {
+      "path": "src/components/demo/FormativeQuiz.js",
+      "description": "Quiz de synthèse en 3 questions avec feed-back pédagogique immédiat, renvoi vers M01 et proposition de création de compte"
+    },
+    "CatalogueFilterBar": {
+      "path": "src/components/catalogue/CatalogueFilterBar.js",
+      "description": "Filtres combinés : étapes (1-5), couches (6), niveaux (L0 à L4), compétences + recherche plein texte"
+    },
+    "ArchitectureBands": {
+      "path": "src/components/home/ArchitectureBands.js",
+      "description": "Visualisation transversale en 6 bandes des couches de l'IA (et non en simple chaîne linéaire)"
+    },
+    "FivePhasesOverview": {
+      "path": "src/components/home/FivePhasesOverview.js",
+      "description": "Les 5 phases simplifiées : Demander, Préparer & rechercher, Raisonner, Produire & contrôler, Restituer"
+    },
+    "EntryProfilesGrid": {
+      "path": "src/components/home/EntryProfilesGrid.js",
+      "description": "4 cartes d'accès stratégiques : Découvrir, Utiliser, Concevoir, Piloter"
+    }
+  },
+  "interactive_demo_steps": [
+    {
+      "step": 1,
+      "title": "Formulation & Réception de la requête",
+      "phase": "Demander",
+      "active_layers": ["application", "securite_gouvernance"],
+      "visual_mode": "request_form",
+      "question_sample": "Quelles sont les conditions d'agrément des acheteurs et exportateurs de café et cacao fixées par le décret du 2 mai 2002 en Côte d'Ivoire ?",
+      "business_summary": "L'utilisateur soumet sa question métier. Le système pré-filtre la demande pour vérifier sa conformité et son contexte opérationnel.",
+      "technical_details": "Validation du payload JSON, contrôle de politique d'accès (RBAC), hachage de la session et journalisation d'audit."
+    },
+    {
+      "step": 2,
+      "title": "Tokenisation & Décomposition linguistique",
+      "phase": "Préparer & rechercher",
+      "active_layers": ["mathematiques", "modeles"],
+      "visual_mode": "token_chips",
+      "business_summary": "La question en langage naturel est segmentée en unités d'information fondamentales (tokens) compréhensibles par les calculs vectoriels.",
+      "technical_details": "Algorithme Byte-Pair Encoding (BPE), suppression des ambiguïtés, conversion en IDs numériques pour la couche d'embedding."
+    },
+    {
+      "step": 3,
+      "title": "Recherche documentaire & Évaluation de pertinence",
+      "phase": "Préparer & rechercher",
+      "active_layers": ["donnees", "mathematiques", "infrastructure"],
+      "visual_mode": "candidate_documents",
+      "business_summary": "Le système consulte la base de connaissances (Journal Officiel du 2 mai 2002) et classe les extraits candidats selon leur score de proximité cosinus.",
+      "technical_details": "Calcul de similarité vectorielle (cosine distance > 0.82), reranking cross-encoder, sélection des extraits top-k pertinents."
+    },
+    {
+      "step": 4,
+      "title": "Assemblage du prompt & Paramétrage de l'inférence",
+      "phase": "Raisonner (inférence)",
+      "active_layers": ["modeles", "securite_gouvernance"],
+      "visual_mode": "prompt_assembly",
+      "business_summary": "Les extraits officiels retenus sont injectés dans une consigne stricte imposant au modèle de ne citer que les textes juridiques fournis.",
+      "technical_details": "Génération du contexte RAG (Grounding), paramétrage temperature=0.1 (déterministe), top_p=0.9, interdiction de l'extrapolation."
+    },
+    {
+      "step": 5,
+      "title": "Génération progressive & Inférence neuronale",
+      "phase": "Raisonner (inférence)",
+      "active_layers": ["modeles", "infrastructure"],
+      "visual_mode": "progressive_text_reveal",
+      "business_summary": "Le modèle calcule successivement la probabilité de chaque mot pour composer une réponse structurée et fluide en temps réel.",
+      "technical_details": "Attention multi-têtes (Transformer architecture), calcul tensoriel sur accélérateur matériel, streaming token par token."
+    },
+    {
+      "step": 6,
+      "title": "Contrôle qualité, Vérification & Garde-fous",
+      "phase": "Produire & contrôler",
+      "active_layers": ["securite_gouvernance", "application"],
+      "visual_mode": "controls_checklist",
+      "business_summary": "Avant diffusion, la réponse est soumise à des filtres automatiques : détection d'hallucinations, conformité des références et intégrité.",
+      "technical_details": "Contrôle d'ancrage factuel (Faithfulness check), validation des citations d'articles de décret, filtrage des données sensibles."
+    },
+    {
+      "step": 7,
+      "title": "Restitution sourcée & Synthèse actionnable",
+      "phase": "Restituer",
+      "active_layers": ["application", "donnees", "securite_gouvernance"],
+      "visual_mode": "final_sourced_answer",
+      "business_summary": "L'utilisateur reçoit une réponse claire, directement vérifiable grâce aux citations formelles du Journal officiel du 2 mai 2002.",
+      "technical_details": "Formatage Markdown structuré, hyperliens d'ancrage documentaire, horodatage certifié et métriques de confiance."
+    }
+  ],
+  "accessibility_and_ux": {
+    "standards": "WCAG AA / AAA text contrast",
+    "keyboard_nav": "Toutes les étapes, onglets, filtres et cartes doivent avoir des états :focus-visible nets (outline 2px solid #1F5E4A)",
+    "motion": "Respect strict de prefers-reduced-motion (pas d'animations distrayantes, transitions douces 200ms)",
+    "no_hover_only": "Aucune information clé ou action n'est dissimulée derrière un simple survol sans équivalent au clic/focus",
+    "test_attributes": "data-testid sur chaque bouton, onglet, élément de filtre, étape de stepper et carte d'apprentissage"
+  },
+  "instructions_to_main_agent": [
+    "Créer une interface épurée, digne des plus grands cabinets d'audit ou de conseil stratégique (McKinsey, BCG, Cour des comptes).",
+    "Conserver impérativement la palette ivoire #FAF8F3 en fond et bleu nuit #14213D en texte principal pour éviter le rendu SaaS lambda.",
+    "Utiliser les 6 couleurs de couches définies de manière sobre : badges discrets, bordures gauches ou puces colorées, sans surcharger les fonds.",
+    "Dans la démonstration en 7 étapes, toujours afficher le bandeau 'Illustration simulée' et détailler le cas officiel ivoirien café/cacao (2 mai 2002).",
+    "Implémenter le catalogue complet (M01 à M16) et les fiches concepts avec recherche et multi-filtres fonctionnels côté frontend React.",
+    "Intégrer le pied de page institutionnel sur chaque vue avec le lien explicite 'by Relais IT (www.relaisit.com)'.",
+    "Veiller à ce que tous les composants soient en fichiers .js (pas de .tsx) et prévoient les attributs data-testid conformes."
+  ]
+}

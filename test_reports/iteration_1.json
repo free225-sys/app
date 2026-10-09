@@ -1,0 +1,34 @@
+{
+  "summary": "Backend: 22/23 pytest tests passed (96%). Frontend: Core flows (Home, Demo 7-step navigation with layer selection, URL + sessionStorage persistence, quiz, Ressources Modules, Concept, Module M09, Parcours P01/P02, Approche, Connexion placeholder, Footer, Mobile 375px, Keyboard menu) all work. One CRITICAL runtime bug found in Ressources when switching Modules→Notions tab.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/concepts", "issue": "Returns 35 concepts but spec requires exactly 32. All 32 expected concepts likely present but 3 extras seeded (review seed_concepts.py)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Ressources (ConceptCard)", "issue": "Clicking the 'Notions' tab after Modules tab triggers runtime error: 'Cannot read properties of undefined (reading \\'join\\')'. Stale modules data is briefly passed to ConceptCard which calls c.module_ids.join(', ') — module_summary objects have no module_ids field. Direct load of /ressources?vue=notions works fine.", "selector": "[data-testid=\"tab-notions\"]", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_backend.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Fix Ressources.js line 141: when `view` changes, prevent rendering stale data of the wrong shape. E.g. gate the render by current view type, reset `data` on tab change, or add defensive fallbacks (c.module_ids?.join || '-') in ConceptCard.",
+    "Investigate seed_concepts.py — 35 concepts seeded vs 32 required by spec (verify count/duplicates)."
+  ],
+  "critical_code_review_comments": [
+    "Ressources.js:70 — c.module_ids.join(', ') has no defensive check; rendering stale (wrong-shape) data between tab switches crashes the app.",
+    "Server.py:114 uses `logger` which is only defined at line 397-398 (after include_router). Works because startup runs after module import, but logger config should be hoisted to the top for clarity.",
+    "Potential consistency: pathways list endpoint pre-computes full nested course+module tree for all pathways; fine at this scale but O(N*M) async awaits — acceptable for Phase 1."
+  ],
+  "updated_files": ["/app/backend/tests/test_backend.py"],
+  "success_rate": {"backend": "96%", "frontend": "~90% (all tested flows work except Modules→Notions tab switch)"},
+  "test_credentials": "N/A — no auth in Phase 1",
+  "seed_data_creation": "None — backend seeds idempotently at startup",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend covered by /app/backend/tests/test_backend.py. The Ressources tab-switch crash is reproducible by: load /ressources (Modules tab default) → click [data-testid=\"tab-notions\"]. Direct URL /ressources?vue=notions works. 35 vs 32 concepts: verify intent with main agent before changing test assertion.",
+  "rca of the issue": "In /app/frontend/src/pages/Ressources.js, `data` from useApi('/modules', ...) remains in state during the brief moment after switching `view` to 'notions' but before the new /concepts fetch resolves. Line 141 then maps that stale module-summary data through <ConceptCard />, which calls `c.module_ids.join(', ')` on line 70 — module_summary() in backend returns no `module_ids` field (only resource_ids), so `.join` throws. Fix: either clear `data` state on view change, key the useApi call by view, or add optional chaining and skip rendering until data matches current view."
+}
