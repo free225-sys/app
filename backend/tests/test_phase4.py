@@ -119,7 +119,7 @@ class TestUserMgmt:
         me = requests.get(f"{API}/auth/me", headers=H(tokens["admin"]), timeout=15).json()
         r = requests.patch(f"{API}/admin/users/{me['id']}", headers=H(tokens["admin"]),
                            json={"roles": ["learner"]}, timeout=15)
-        assert r.status_code == 200
+        assert r.status_code == 400 and "Champ non autorisé" in r.json()["detail"]
         assert requests.get(f"{API}/auth/me", headers=H(tokens["admin"]), timeout=15).json()["roles"] == ["admin"]
 
 

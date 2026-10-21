@@ -20,13 +20,25 @@ const ModuleCta = ({ moduleId }) => {
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
       <Link to={`/modules/${moduleId}/learn`} className={BTN_PRIMARY} data-testid="module-start-button">{label} <ArrowRight size={16} aria-hidden="true" /></Link>
       {prog ? (
-        <span className="text-sm text-[#505e75]" data-testid="module-progress-summary">
-          {statusLabel(prog.status)} · {prog.resources_done}/{prog.resources_total} ressources · évaluation {prog.graded.passed ? "réussie" : "à passer"}
-        </span>
+        <>
+          {prog.previous_completion && <PreviousCompletion moduleId={moduleId} prev={prog.previous_completion} />}
+          <span className="text-sm text-[#505e75]" data-testid="module-progress-summary">
+            {statusLabel(prog.status)} · {prog.resources_done}/{prog.resources_total} ressources{prog.graded ? ` · évaluation ${prog.graded.passed ? "réussie" : "à passer"}` : ""}
+          </span>
+        </>
       ) : user === false && <span className="text-sm text-[#627086]">Connexion requise pour suivre le module et passer l'évaluation notée.</span>}
     </div>
   );
 };
+
+export const PreviousCompletion = ({ moduleId, prev, onGo }) => (
+  <p className="rounded-[12px] border border-[#147c77]/30 bg-[#eef5f3] px-4 py-2 text-sm font-semibold text-[#14243c]" role="status" data-testid="module-previous-completion">
+    Terminé (version {prev.version}) ·{" "}
+    {onGo
+      ? <button type="button" className="text-[#147c77] underline underline-offset-4" onClick={onGo} data-testid="module-previous-completion-link">Nouvelle évaluation disponible</button>
+      : <Link to={`/modules/${moduleId}/learn?etape=evaluation`} className="text-[#147c77] underline underline-offset-4" data-testid="module-previous-completion-link">Nouvelle évaluation disponible</Link>}
+  </p>
+);
 
 const pctTxt = (v) => `${Math.round(v * 100)} %`;
 

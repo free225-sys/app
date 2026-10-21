@@ -8,6 +8,7 @@ import { ResourceView } from "@/components/learn/ResourceView";
 import { FormativeQuiz } from "@/components/learn/FormativeQuiz";
 import { GradedQuiz } from "@/components/learn/GradedQuiz";
 import { ProjectPanel } from "@/components/learn/ProjectPanel";
+import { PreviousCompletion } from "@/pages/ModulePage";
 
 
 const SideItem = ({ active, done, icon, label, sub, onClick, testId }) => (
@@ -71,6 +72,7 @@ function LearnView() {
                 <span className="font-mono" data-testid="learn-module-percent">{Math.round(progress.percent * 100)} %</span>
               </div>
               <div className="mt-2"><ProgressBar value={progress.percent} testId="learn-progress-bar" /></div>
+              {progress.previous_completion && <div className="mt-3"><PreviousCompletion moduleId={id} prev={progress.previous_completion} onGo={() => go("evaluation")} /></div>}
             </div>
           </div>
           {progress.status === "completed" && (

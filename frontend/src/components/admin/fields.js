@@ -212,6 +212,9 @@ export const FIELDS = {
     { key: "explanation", label: "Explication", kind: "textarea", ...W },
     { key: "competencies", label: "Compétences évaluées (pondération)", kind: "rows", ...W,
       columns: [{ key: "competency_id", label: "Compétence", kind: "select", source: "competencies" }, { key: "weight", label: "Poids", kind: "number" }] },
+    { key: "sources", label: "Sources (ressource et passage cité)", kind: "rows", ...W,
+      columns: [{ key: "resource_id", label: "Ressource", kind: "select", source: "resource" }, { key: "quote", label: "Passage cité (texte exact)", kind: "textarea" }] },
+    { key: "source_note", label: "Note sur la source", kind: "textarea", ...W },
   ],
   assessment: [
     { key: "code", label: "Code" }, { key: "title", label: "Titre" },

@@ -86,7 +86,7 @@ class TestCatalogIO:
 
     def test_reimport_export_unchanged(self):
         tok = login("lead")
-        exp = requests.get(f"{API}/admin/catalog/export", headers=H(tok), timeout=20).json()
+        exp = without_review(requests.get(f"{API}/admin/catalog/export", headers=H(tok), timeout=20).json(), tok)
         r = requests.post(f"{API}/admin/catalog/import", json=exp, headers=H(tok), timeout=30)
         assert r.status_code == 200, r.text
         out = r.json()
@@ -112,7 +112,7 @@ class TestCatalogIO:
 
     def test_confirm_tiny_change_creates_draft_and_cleanup(self):
         tok = login("lead")
-        exp = requests.get(f"{API}/admin/catalog/export", headers=H(tok), timeout=20).json()
+        exp = without_review(requests.get(f"{API}/admin/catalog/export", headers=H(tok), timeout=20).json(), tok)
         # pick first course, change its title with a tagged suffix
         suffix = f" (TEST-{uuid.uuid4().hex[:6]})"
         courses = [dict(c) for c in exp["courses"]]
@@ -134,6 +134,13 @@ class TestCatalogIO:
         v = drafts[-1]["version"]
         d = requests.delete(f"{API}/admin/versions/course/{target_cid}/{v}", headers=H(tok), timeout=15)
         assert d.status_code == 200, d.text
+
+
+
+def without_review(exp, tok):
+    """Drop entities that have a version in review (the import refuses them by design)."""
+    busy = {i["entity_id"] for i in requests.get(f"{API}/admin/review-queue", headers=H(tok), timeout=15).json()}
+    return {k: ([x for x in v if not (isinstance(x, dict) and x.get("id") in busy)] if isinstance(v, list) else v) for k, v in exp.items()}
 
 
 # ---------- Delete draft ----------

@@ -270,6 +270,9 @@ async def module_progress(user_id: str, module_id: str) -> dict:
     done, by_module, resources, _ = await user_state(user_id)
     prog = compute_module_progress(mods[module_id], done, by_module.get(module_id, []), resources)
     await mark_completion(user_id, prog)
+    prev = await db.module_completions.find_one({"user_id": user_id, "module_id": module_id})
+    prog["previous_completion"] = ({"version": prev["module_version"], "completed_at": prev.get("completed_at")}
+                                   if prev and prog["status"] != "completed" and prev.get("module_version") != prog["module_version"] else None)
     return prog
 
 
