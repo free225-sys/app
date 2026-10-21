@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { http, useApi } from "@/lib/api";
+import { downloadFile, http, useApi } from "@/lib/api";
 import { formatApiError } from "@/lib/auth";
 import { Loading } from "@/components/common";
 import { BTN_DANGER, BTN_SMALL, INPUT, LEGACY_ROLE_LABEL, Notice, StatusBadge, fmtDate, pct } from "./shared";
@@ -8,13 +8,35 @@ import { BTN_DANGER, BTN_SMALL, INPUT, LEGACY_ROLE_LABEL, Notice, StatusBadge, f
 const ACTIONS = { create: "Création", update: "Modification", new_version: "Nouvelle version", submit: "Soumission", approve: "Approbation", return: "Renvoi",
   publish: "Publication", publish_blocked: "Publication bloquée", retire: "Retrait", revoke: "Révocation", invalidate: "Invalidation", upload: "Téléversement" };
 
+const ExportQueue = () => {
+  const [busy, setBusy] = useState("");
+  const [err, setErr] = useState("");
+  const get = async (fmt) => {
+    setBusy(fmt); setErr("");
+    try { await downloadFile(`/admin/review-queue/export?format=${fmt}`, `file-de-relecture.${fmt}`); }
+    catch (e) { setErr(formatApiError(e)); }
+    finally { setBusy(""); }
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Exporter la file de relecture">
+      <span className="text-xs font-semibold text-[#627086]">Exporter la file de relecture :</span>
+      <button type="button" className={BTN_SMALL} disabled={!!busy} onClick={() => get("pdf")} data-testid="review-export-pdf">{busy === "pdf" ? "Génération…" : "PDF"}</button>
+      <button type="button" className={BTN_SMALL} disabled={!!busy} onClick={() => get("md")} data-testid="review-export-md">{busy === "md" ? "Génération…" : "Markdown"}</button>
+      {err && <span role="alert" className="text-xs text-[#7E2828]">{err}</span>}
+    </div>
+  );
+};
+
 export const ReviewQueue = ({ open }) => {
   const { data, error } = useApi("/admin/review-queue");
   if (error) return <Notice kind="error">{formatApiError(error)}</Notice>;
   if (!data) return <Loading />;
   return (
     <section aria-labelledby="rq-title" data-testid="admin-review-queue">
-      <h2 id="rq-title" className="text-2xl font-semibold tracking-tight">À relire et à publier</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="rq-title" className="text-2xl font-semibold tracking-tight">À relire et à publier</h2>
+        <ExportQueue />
+      </div>
       {data.length === 0 ? <p className="mt-6 text-sm" data-testid="review-queue-empty">Aucune version en relecture.</p> : (
         <ul className="mt-6 divide-y divide-[#e5e9ef] border border-[#e5e9ef] bg-white">
           {data.map((v) => (

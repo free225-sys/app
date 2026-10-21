@@ -10,6 +10,7 @@ from core import (db, client, logger, BaseDocument, VersionedEntity, EntityVersi
                   VERSION_STATUSES, upsert, insert_missing, norm, all_docs, published, versions_by_key, pinned)
 import admin
 import catalog_io
+import review_export
 from seed_catalog import seed_catalog
 import auth
 import learning
@@ -373,6 +374,7 @@ app.include_router(projects.router)
 app.include_router(certificates.router)
 app.include_router(admin.router)
 app.include_router(catalog_io.router)
+app.include_router(review_export.router)
 
 app.add_middleware(
     CORSMiddleware,
