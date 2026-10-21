@@ -3,16 +3,14 @@ import io
 import os
 import uuid
 import pytest
+from creds import ADMIN, LEARNER
 import requests
 
 BASE = os.environ.get("REACT_APP_BACKEND_URL", "https://relais-footer.preview.emergentagent.com").rstrip("/")
 API = f"{BASE}/api"
 
 CREDS = {
-    "admin": ("admin@casa-academy.ci", "Admin2026!"),
-    "lead": ("lead@casa-academy.ci", "Responsable2026!"),
-    "author": ("author@casa-academy.ci", "Auteur2026!"),
-    "learner": ("apprenant@casa-academy.ci", "Apprenant2026!"),
+    "admin": ADMIN, "lead": ADMIN, "author": ADMIN, "learner": LEARNER,
 }
 
 
@@ -69,11 +67,11 @@ class TestCatalogContent:
 
 class TestCatalogIO:
     def test_author_cannot_export(self):
-        r = requests.get(f"{API}/admin/catalog/export", headers=H("author"), timeout=15)
+        r = requests.get(f"{API}/admin/catalog/export", headers=H("learner"), timeout=15)
         assert r.status_code == 403
 
     def test_author_cannot_import(self):
-        r = requests.post(f"{API}/admin/catalog/import", json={"catalogue_version": "x"}, headers=H("author"), timeout=15)
+        r = requests.post(f"{API}/admin/catalog/import", json={"catalogue_version": "x"}, headers=H("learner"), timeout=15)
         assert r.status_code == 403
 
     def test_export_shape(self):

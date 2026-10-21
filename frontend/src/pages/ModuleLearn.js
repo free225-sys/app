@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Check, ClipboardCheck, FolderKanban, PenLine } from "lucide-react";
 import { http, useApi, useCatalog } from "@/lib/api";
-import { RequireAuth, STATUS_LABEL } from "@/lib/auth";
+import { RequireAuth, statusLabel } from "@/lib/auth";
 import { Container, ErrorState, LINK_ARROW, Loading, ProgressBar } from "@/components/common";
 import { ResourceView } from "@/components/learn/ResourceView";
 import { FormativeQuiz } from "@/components/learn/FormativeQuiz";
@@ -67,7 +67,7 @@ function LearnView() {
             </div>
             <div className="w-full md:w-72">
               <div className="flex justify-between text-xs">
-                <span className="font-semibold" data-testid="learn-module-status">{STATUS_LABEL[progress.status]}</span>
+                <span className="font-semibold" data-testid="learn-module-status">{statusLabel(progress.status)}</span>
                 <span className="font-mono" data-testid="learn-module-percent">{Math.round(progress.percent * 100)} %</span>
               </div>
               <div className="mt-2"><ProgressBar value={progress.percent} testId="learn-progress-bar" /></div>
@@ -132,7 +132,7 @@ function LearnView() {
 
 export default function ModuleLearn() {
   return (
-    <RequireAuth>
+    <RequireAuth learner>
       <LearnView />
     </RequireAuth>
   );

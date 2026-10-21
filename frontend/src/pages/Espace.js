@@ -2,7 +2,7 @@ import { Picto } from "@/components/Pictos";
 import { Link } from "react-router-dom";
 import { ArrowRight, Award } from "lucide-react";
 import { useApi } from "@/lib/api";
-import { RequireAuth, useAuth } from "@/lib/auth";
+import { RequireAuth, statusLabel, useAuth } from "@/lib/auth";
 import { Container, ErrorState, Eyebrow, LINK_ARROW, Loading, ProgressBar, SectionTitle } from "@/components/common";
 import { StatusPill, learnUrl } from "@/pages/CourseReader";
 import { CertificatesSection, PathwaysSection, ProjectsSection } from "@/components/espace/Phase3Sections";
@@ -29,9 +29,35 @@ const Recommendations = ({ items }) => (
   </section>
 );
 
-const Courses = ({ courses }) => (
-  <section aria-labelledby="courses-title" data-testid="espace-courses">
-    <SectionTitle id="courses-title" eyebrow="Progression" title="Vos cours" />
+const Courses = ({ courses }) => {
+  const started = courses.filter((c) => c.status !== "not_started");
+  const available = courses.filter((c) => c.status === "not_started");
+  return (
+    <>
+      <section aria-labelledby="courses-title" data-testid="espace-courses">
+        <SectionTitle id="courses-title" eyebrow="Mes formations" title="Cours commencés" />
+        {started.length === 0 ? <p className="mt-6 text-sm text-[#505e75]" data-testid="espace-courses-empty">Aucun cours commencé pour l'instant. Choisissez un cours ci-dessous ou inscrivez-vous à un parcours.</p> : <CourseCards courses={started} />}
+      </section>
+      {available.length > 0 && (
+        <section aria-labelledby="available-title" className="mt-16" data-testid="espace-available-courses">
+          <SectionTitle id="available-title" eyebrow="Catalogue" title="Cours disponibles" />
+          <ul className="mt-6 grid gap-3 md:grid-cols-2">
+            {available.map((c) => (
+              <li key={c.course_id} data-testid={`espace-available-${c.course_id}`}>
+                <Link to={`/courses/${c.course_id}`} className="flex items-center justify-between gap-3 rounded-[14px] border border-[#e5e9ef] bg-white px-5 py-4 text-sm hover:border-[#365ac8]">
+                  <span><span className="mr-2 font-mono text-xs text-[#147c77]">{c.code}</span>{c.title}</span>
+                  <span className="text-xs text-[#627086]">{c.module_count} modules</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </>
+  );
+};
+
+const CourseCards = ({ courses }) => (
     <ul className="mt-6 grid gap-4 md:grid-cols-2">
       {courses.map((c) => (
         <li key={c.course_id} className="border border-[#e5e9ef] bg-white p-5" data-testid={`espace-course-${c.course_id}`}>
@@ -45,7 +71,7 @@ const Courses = ({ courses }) => (
             {c.modules.map((m) => (
               <li key={m.module_id} title={`${m.code} — ${m.title}`}
                 className={`rounded-[10px] px-1.5 py-0.5 font-mono text-[11px] ${m.status === "completed" ? "bg-[#147c77] text-white" : m.status === "in_progress" ? "bg-[#EDF3F8] text-[#254a98]" : "bg-[#f1f4f7] text-[#627086]"}`}>
-                {m.code}<span className="sr-only"> : {m.status}</span>
+                {m.code}<span className="sr-only"> : {statusLabel(m.status)}</span>
               </li>
             ))}
           </ul>
@@ -55,7 +81,6 @@ const Courses = ({ courses }) => (
         </li>
       ))}
     </ul>
-  </section>
 );
 
 const groupByCompetency = (items) => {
@@ -176,7 +201,7 @@ function Dashboard() {
 
 export default function Espace() {
   return (
-    <RequireAuth>
+    <RequireAuth learner>
       <Dashboard />
     </RequireAuth>
   );

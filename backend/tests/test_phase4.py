@@ -6,18 +6,14 @@ import uuid
 from typing import Dict
 
 import pytest
+from creds import ADMIN, LEARNER
 import requests
 
 BASE = os.environ.get("REACT_APP_BACKEND_URL", "https://relais-footer.preview.emergentagent.com").rstrip("/")
 API = f"{BASE}/api"
 
 CREDS = {
-    "admin":   ("admin@casa-academy.ci", "Admin2026!"),
-    "learner": ("apprenant@casa-academy.ci", "Apprenant2026!"),
-    "author":  ("author@casa-academy.ci", "Auteur2026!"),
-    "reviewer":("reviewer@casa-academy.ci", "Relecteur2026!"),
-    "lead":    ("lead@casa-academy.ci", "Responsable2026!"),
-    "evaluator":("evaluator@casa-academy.ci", "Evaluateur2026!"),
+    "admin": ADMIN, "learner": LEARNER, "author": ADMIN, "reviewer": ADMIN, "lead": ADMIN, "evaluator": ADMIN,
 }
 
 SFX = uuid.uuid4().hex[:6]
@@ -53,6 +49,7 @@ class TestAttainmentsDedup:
 
 # ---------- 2. RBAC ----------
 class TestRBAC:
+    @pytest.mark.skip(reason="Séparation des rôles supprimée (consolidation 2026-10 : admin unique + apprenants)")
     def test_author_cannot_list_users(self, tokens):
         r = requests.get(f"{API}/admin/users", headers=H(tokens["author"]), timeout=15)
         assert r.status_code == 403
@@ -82,15 +79,16 @@ class TestUserMgmt:
 
     def test_create_user(self, tokens):
         payload = {"email": self.email, "first_name": "Test", "last_name": "User",
-                   "password": "Motdepasse1", "roles": ["author"]}
+                   "password": "Motdepasse1", "roles": ["author"], "role": "admin"}
         r = requests.post(f"{API}/admin/users", headers=H(tokens["admin"]), json=payload, timeout=15)
         assert r.status_code == 200, r.text
         d = r.json()
         assert d["email"] == self.email
-        assert d["roles"] == ["author"]
+        assert d["roles"] == ["learner"]
         assert "_id" not in d
         TestUserMgmt.uid = d["id"]
 
+    @pytest.mark.skip(reason="Séparation des rôles supprimée (consolidation 2026-10 : admin unique + apprenants)")
     def test_patch_roles(self, tokens):
         assert TestUserMgmt.uid
         r = requests.patch(f"{API}/admin/users/{TestUserMgmt.uid}", headers=H(tokens["admin"]),
@@ -121,7 +119,8 @@ class TestUserMgmt:
         me = requests.get(f"{API}/auth/me", headers=H(tokens["admin"]), timeout=15).json()
         r = requests.patch(f"{API}/admin/users/{me['id']}", headers=H(tokens["admin"]),
                            json={"roles": ["learner"]}, timeout=15)
-        assert r.status_code == 400
+        assert r.status_code == 200
+        assert requests.get(f"{API}/auth/me", headers=H(tokens["admin"]), timeout=15).json()["roles"] == ["admin"]
 
 
 # ---------- 4. PD01 concept workflow + 5. review return + 6. publish perms ----------
@@ -144,6 +143,7 @@ class TestConceptWorkflow:
         assert r.status_code == 200
         assert r.json()["latest"]["status"] == "review"
 
+    @pytest.mark.skip(reason="Séparation des rôles supprimée (consolidation 2026-10 : admin unique + apprenants)")
     def test_author_cannot_publish(self, tokens):
         r = requests.post(f"{API}/admin/versions/concept/{self.cid}/publish", headers=H(tokens["author"]), timeout=15)
         assert r.status_code == 403
@@ -166,13 +166,11 @@ class TestConceptWorkflow:
         reviews = j["latest"].get("reviews", [])
         assert any("préciser" in (rv.get("comment") or "") for rv in reviews)
 
-    def test_reviewer_cannot_publish(self, tokens):
-        # re-submit, approve, then try publish as reviewer → 403
-        requests.post(f"{API}/admin/versions/concept/{self.cid}/submit", headers=H(tokens["author"]), timeout=15)
-        requests.post(f"{API}/admin/versions/concept/{self.cid}/review", headers=H(tokens["reviewer"]),
-                      json={"decision": "approve"}, timeout=15)
-        r = requests.post(f"{API}/admin/versions/concept/{self.cid}/publish", headers=H(tokens["reviewer"]), timeout=15)
-        assert r.status_code == 403
+    def test_admin_resubmits_and_approves(self, tokens):
+        requests.post(f"{API}/admin/versions/concept/{self.cid}/submit", headers=H(tokens["admin"]), timeout=15)
+        r = requests.post(f"{API}/admin/versions/concept/{self.cid}/review", headers=H(tokens["admin"]),
+                          json={"decision": "approve"}, timeout=15)
+        assert r.status_code == 200 and r.json()["latest"]["approved"] is True
 
     def test_publish_by_lead(self, tokens):
         r = requests.post(f"{API}/admin/versions/concept/{self.cid}/publish", headers=H(tokens["lead"]), timeout=15)

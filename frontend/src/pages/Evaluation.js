@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import { downloadFile, http, useApi } from "@/lib/api";
-import { RequireAuth, formatApiError, useAuth } from "@/lib/auth";
-import { BTN_PRIMARY, BTN_SECONDARY, Container, ErrorState, Loading, PageHeader } from "@/components/common";
+import { Navigate } from "react-router-dom";
+import { RequireAuth, formatApiError, isAdmin, useAuth } from "@/lib/auth";
+import { BTN_PRIMARY, BTN_SECONDARY, ErrorState, Loading } from "@/components/common";
 import { Review, Rubric, SubmissionStatus } from "@/components/learn/ProjectPanel";
 
 const GradeForm = ({ s, rubric, onDone }) => {
@@ -51,8 +52,7 @@ const GradeForm = ({ s, rubric, onDone }) => {
   );
 };
 
-function EvaluationView() {
-  const { user } = useAuth();
+export function EvaluationPanel() {
   const { data: rubric } = useApi("/projects/M16/rubric");
   const [status, setStatus] = useState("submitted");
   const [subs, setSubs] = useState(null);
@@ -60,12 +60,12 @@ function EvaluationView() {
   const load = () => http.get("/evaluation/submissions", { params: status ? { status } : {} }).then((r) => setSubs(r.data)).catch(setError);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { setSubs(null); load(); }, [status]);
-  if (!["evaluator", "admin"].some((r) => user.roles.includes(r))) return <ErrorState message="Cette page est réservée aux évaluateurs." />;
   if (error) return <ErrorState message={formatApiError(error)} />;
   return (
-    <div data-testid="evaluation-page">
-      <PageHeader eyebrow="Évaluation" title="Projets à évaluer" lead="Notez chaque critère de la grille, rédigez un commentaire, puis validez ou rejetez. Un projet validé crée une preuve de compétence de type « projet »." />
-      <Container className="pt-10">
+    <section aria-labelledby="evaluation-title" data-testid="evaluation-page">
+      <h2 id="evaluation-title" className="text-2xl font-semibold tracking-tight">Projets à évaluer (M16)</h2>
+      <p className="mt-2 max-w-[68ch] text-sm text-[#505e75]">Notez chaque critère de la grille, rédigez un commentaire, puis validez ou rejetez. Un projet validé crée une preuve de compétence de type « projet ».</p>
+      <div className="mt-8">
         <div className="flex gap-6 border-b border-[#e5e9ef]" role="tablist" aria-label="Filtrer les soumissions">
           {[["submitted", "En attente"], ["validated", "Validés"], ["rejected", "Rejetés"], ["", "Tous"]].map(([k, l]) => (
             <button key={k || "all"} type="button" role="tab" aria-selected={status === k} onClick={() => setStatus(k)}
@@ -97,11 +97,17 @@ function EvaluationView() {
           </ul>
         )}
         {rubric && <details className="mt-12"><summary className="cursor-pointer text-sm font-semibold">Voir la grille publiée</summary><div className="mt-4"><Rubric rubric={rubric} /></div></details>}
-      </Container>
-    </div>
+      </div>
+    </section>
   );
 }
 
+const EvaluationGate = () => {
+  const { user } = useAuth();
+  if (isAdmin(user)) return <Navigate to="/admin?onglet=evaluation" replace />;
+  return <ErrorState message="Cette page est réservée à l'administrateur de la plateforme." />;
+};
+
 export default function Evaluation() {
-  return <RequireAuth><EvaluationView /></RequireAuth>;
+  return <RequireAuth><EvaluationGate /></RequireAuth>;
 }

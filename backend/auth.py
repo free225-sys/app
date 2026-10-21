@@ -6,6 +6,7 @@ import bcrypt
 import jwt
 from bson import ObjectId
 from bson.errors import InvalidId
+from pymongo.errors import DuplicateKeyError
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, EmailStr, Field
 
@@ -14,7 +15,9 @@ from core import BaseDocument, db, now_iso, logger
 JWT_ALGORITHM = "HS256"
 ACCESS_TTL = timedelta(hours=8)
 REFRESH_TTL = timedelta(days=7)
-ROLES = ["learner", "author", "reviewer", "evaluator", "pedagogical_lead", "admin"]
+ROLES = ["learner", "admin"]
+ADMIN_INDEX = "unique_single_admin"
+MIGRATION_ID = "2026_10_roles"
 MAX_FAILED = 5
 LOCK_MINUTES = 15
 
@@ -25,13 +28,20 @@ class User(BaseDocument):
     email: str
     first_name: str
     last_name: str
-    roles: List[str]
+    role: str = "learner"
     created_at: str
     active: bool = True
+    session_version: int = 0
+
+    @property
+    def roles(self) -> List[str]:
+        return [self.role]
 
     def public(self) -> dict:
         d = self.out()
-        d.pop("password_hash", None)
+        for k in ("password_hash", "legacy_roles", "session_version", "roles"):
+            d.pop(k, None)
+        d["roles"] = [self.role]
         return d
 
 
@@ -55,14 +65,14 @@ def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
 
 
-def make_token(user_id: str, kind: str, ttl: timedelta) -> str:
-    payload = {"sub": user_id, "type": kind, "exp": datetime.now(timezone.utc) + ttl}
+def make_token(user_id: str, kind: str, ttl: timedelta, sv: int) -> str:
+    payload = {"sub": user_id, "type": kind, "sv": sv, "exp": datetime.now(timezone.utc) + ttl}
     return jwt.encode(payload, os.environ["JWT_SECRET"], algorithm=JWT_ALGORITHM)
 
 
 def issue_session(response: Response, user: User) -> dict:
-    access = make_token(user.id, "access", ACCESS_TTL)
-    refresh = make_token(user.id, "refresh", REFRESH_TTL)
+    access = make_token(user.id, "access", ACCESS_TTL, user.session_version)
+    refresh = make_token(user.id, "refresh", REFRESH_TTL, user.session_version)
     opts = dict(httponly=True, secure=True, samesite="none", path="/")
     response.set_cookie("access_token", access, max_age=int(ACCESS_TTL.total_seconds()), **opts)
     response.set_cookie("refresh_token", refresh, max_age=int(REFRESH_TTL.total_seconds()), **opts)
@@ -86,11 +96,17 @@ async def user_from_token(token: str) -> User:
         raise HTTPException(401, "Session expirée")
     except (jwt.InvalidTokenError, InvalidId):
         raise HTTPException(401, "Session invalide")
+    check_session(doc, payload)
+    return User.from_mongo(doc)
+
+
+def check_session(doc: Optional[dict], payload: dict):
     if not doc:
         raise HTTPException(401, "Utilisateur introuvable")
     if doc.get("active") is False:
         raise HTTPException(401, "Compte désactivé")
-    return User.from_mongo(doc)
+    if payload.get("sv", 0) != doc.get("session_version", 0) or doc.get("role") not in ROLES:
+        raise HTTPException(401, "Session expirée. Reconnectez-vous.")
 
 
 async def get_current_user(request: Request) -> User:
@@ -116,7 +132,7 @@ async def register(body: RegisterIn, response: Response):
     if await db.users.find_one({"email": email}):
         raise HTTPException(409, "Un compte existe déjà avec cette adresse e-mail.")
     doc = {"email": email, "first_name": body.first_name.strip(), "last_name": body.last_name.strip(),
-           "password_hash": hash_password(body.password), "roles": ["learner"], "created_at": now_iso()}
+           "password_hash": hash_password(body.password), "role": "learner", "active": True, "session_version": 0, "created_at": now_iso()}
     res = await db.users.insert_one(doc)
     doc["_id"] = res.inserted_id
     return issue_session(response, User.from_mongo(doc))
@@ -168,24 +184,27 @@ async def refresh(request: Request, response: Response):
         doc = await db.users.find_one({"_id": ObjectId(payload["sub"])})
     except (jwt.InvalidTokenError, InvalidId):
         raise HTTPException(401, "Session invalide")
-    if not doc or doc.get("active") is False:
-        raise HTTPException(401, "Utilisateur introuvable")
+    check_session(doc, payload)
     return issue_session(response, User.from_mongo(doc))
 
 
 @router.post("/forgot-password")
 async def forgot_password():
-    return {"message": "La réinitialisation automatique n'est pas encore disponible. Contactez l'administrateur de la plateforme pour obtenir un nouveau mot de passe."}
+    return {"message": "Contactez l'administrateur de la plateforme : contact@relaisit.com", "contact_email": "contact@relaisit.com"}
 
 
-async def seed_user(email: str, password: str, first: str, last: str, roles: List[str]):
-    email = email.lower()
-    existing = await db.users.find_one({"email": email})
-    if existing is None:
-        await db.users.insert_one({"email": email, "first_name": first, "last_name": last, "roles": roles,
-                                   "password_hash": hash_password(password), "created_at": now_iso()})
-    elif not verify_password(password, existing["password_hash"]):
-        await db.users.update_one({"_id": existing["_id"]}, {"$set": {"password_hash": hash_password(password)}})
+async def ensure_admin_index():
+    await db.users.create_index([("role", 1)], name=ADMIN_INDEX, unique=True, partialFilterExpression={"role": "admin"})
+
+
+async def insert_if_missing(email: Optional[str], password: Optional[str], first: str, last: str, role: str):
+    if not email or not password or await db.users.find_one({"email": email.lower()}):
+        return
+    try:
+        await db.users.insert_one({"email": email.lower(), "first_name": first, "last_name": last, "role": role, "active": True,
+                                   "session_version": 0, "password_hash": hash_password(password), "created_at": now_iso()})
+    except DuplicateKeyError:
+        logger.info("Seed ignoré : %s déjà présent ou administrateur existant", role)
 
 
 async def seed_users():
@@ -194,18 +213,25 @@ async def seed_users():
     if "identifier_1" in indexes and not indexes["identifier_1"].get("unique"):
         await db.login_attempts.drop()
     await db.login_attempts.create_index("identifier", unique=True)
-    await seed_user(os.environ["ADMIN_EMAIL"], os.environ["ADMIN_PASSWORD"], "Administrateur", "CASA", ["admin", "learner"])
-    await seed_user(os.environ["LEARNER_EMAIL"], os.environ["LEARNER_PASSWORD"], "Aya", "Kouassi", ["learner"])
-    await seed_user(os.environ["EVALUATOR_EMAIL"], os.environ["EVALUATOR_PASSWORD"], "Koffi", "N'Guessan", ["evaluator"])
-    await seed_user(os.environ["AUTHOR_EMAIL"], os.environ["AUTHOR_PASSWORD"], "Awa", "Traoré", ["author"])
-    await seed_user(os.environ["REVIEWER_EMAIL"], os.environ["REVIEWER_PASSWORD"], "Yao", "Konan", ["reviewer"])
-    await seed_user(os.environ["LEAD_EMAIL"], os.environ["LEAD_PASSWORD"], "Mariam", "Diabaté", ["pedagogical_lead"])
-    logger.info("Users seeded")
+    if await db.users.find_one({"roles": {"$exists": True}}) and not await db.migrations.find_one({"_id": MIGRATION_ID}):
+        logger.warning("Migration des rôles non appliquée : aucun compte créé au démarrage.")
+        return
+    await ensure_admin_index()
+    if not await db.users.find_one({"role": "admin"}):
+        await insert_if_missing(os.environ.get("ADMIN_EMAIL"), os.environ.get("ADMIN_PASSWORD"), "Administrateur", "CASA", "admin")
+    await insert_if_missing(os.environ.get("LEARNER_EMAIL"), os.environ.get("LEARNER_PASSWORD"), "Aya", "Kouassi", "learner")
+    logger.info("Users seed checked")
 
 
 def require_roles(*roles):
     async def dep(user: User = Depends(get_current_user)) -> User:
-        if not set(roles) & set(user.roles):
+        if user.role not in roles:
             raise HTTPException(403, "Accès réservé.")
         return user
     return dep
+
+
+async def require_learner(user: User = Depends(get_current_user)) -> User:
+    if user.role != "learner":
+        raise HTTPException(403, "Action réservée aux apprenants. Le compte administrateur consulte en lecture seule.")
+    return user

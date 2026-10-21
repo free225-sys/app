@@ -29,6 +29,8 @@ export function formatApiError(e) {
 }
 
 export const safeNext = (next) => (next && next.startsWith("/") && !next.startsWith("//") ? next : "/espace");
+export const isAdmin = (u) => !!u && u.role === "admin";
+export const homeFor = (u, next) => (isAdmin(u) ? (next && next.startsWith("/admin") ? next : "/admin") : safeNext(next));
 
 const readJson = (key) => {
   try {
@@ -65,7 +67,7 @@ export function AuthProvider({ children }) {
   const start = async (path, body) => {
     const { data } = await http.post(path, body);
     localStorage.setItem(TOKEN_KEY, data.access_token);
-    await attachAnonymousProgress();
+    if (!isAdmin(data.user)) await attachAnonymousProgress();
     setUser(data.user);
     return data.user;
   };
@@ -83,12 +85,14 @@ export function AuthProvider({ children }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export const RequireAuth = ({ children }) => {
+export const RequireAuth = ({ children, learner = false }) => {
   const { user } = useAuth();
   const loc = useLocation();
   if (user === null) return <Loading />;
   if (!user) return <Navigate to={`/connexion?suite=${encodeURIComponent(loc.pathname + loc.search)}`} replace />;
+  if (learner && isAdmin(user)) return <Navigate to="/admin" replace />;
   return children;
 };
 
 export const STATUS_LABEL = { not_started: "Non commencé", in_progress: "En cours", completed: "Terminé" };
+export const statusLabel = (s) => STATUS_LABEL[s] || (s ? "Statut indisponible" : "—");

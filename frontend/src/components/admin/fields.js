@@ -197,7 +197,7 @@ export const FIELDS = {
     { key: "prerequisite_module_ids", label: "Modules prérequis", kind: "chips", source: "module", ...W },
     { key: "stage_ids", label: "Étapes", kind: "chips", source: "stages", ...W }, { key: "layer_ids", label: "Couches", kind: "chips", source: "layers", ...W },
     { key: "levels", label: "Niveaux", kind: "chips", source: "levels", ...W }, { key: "competency_ids", label: "Compétences", kind: "chips", source: "competencies", ...W },
-    { key: "duration_hours", label: "Durée (heures)", kind: "number" },
+    { key: "duration_hours", label: "Durée pédagogique estimée (heures)", kind: "number" },
     { key: "resource_ids", label: "Ressources (ordre de lecture)", kind: "ordered", source: "resource", ...W },
     { key: "assessment_ids", label: "Quiz liés", kind: "chips", source: "assessment", help: "Par convention : A-{module}-F (formatif) et A-{module}-G (noté).", ...W },
   ],
@@ -223,7 +223,7 @@ export const FIELDS = {
   ],
   course: [
     { key: "code", label: "Code" }, { key: "title", label: "Titre" }, { key: "summary", label: "Résumé", kind: "textarea", ...W },
-    { key: "profile_id", label: "Profil", kind: "select", source: "profiles" }, { key: "duration_hours", label: "Durée (heures)", kind: "number" },
+    { key: "profile_id", label: "Profil", kind: "select", source: "profiles" }, { key: "duration_hours", label: "Durée pédagogique estimée (heures)", kind: "number" },
     { key: "levels", label: "Niveaux", kind: "chips", source: "levels", ...W },
     { key: "modules", label: "Modules (ordre, version épinglée, optionnel)", kind: "rows", ...W,
       help: "Chaque module est épinglé à une version : publier une nouvelle version d'un module ne modifie pas ce cours.",

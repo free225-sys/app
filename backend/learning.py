@@ -3,7 +3,7 @@ from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from auth import User, get_current_user, get_optional_user
+from auth import User, get_current_user, get_optional_user, require_learner
 from core import BaseDocument, LEVEL_ORDER, all_docs, db, now_iso, pinned, published, versions_by_key
 
 router = APIRouter(prefix="/api", tags=["learning"])
@@ -154,7 +154,7 @@ async def record_attainments(user: User, attempt: dict):
 
 
 @router.post("/assessments/{aid}/attempts")
-async def submit_attempt(aid: str, body: AttemptIn, user: User = Depends(get_current_user)):
+async def submit_attempt(aid: str, body: AttemptIn, user: User = Depends(require_learner)):
     ent, version, qs = await load_assessment(aid)
     if ent["kind"] != "graded":
         raise HTTPException(400, "Seules les évaluations notées acceptent des tentatives.")
@@ -178,7 +178,7 @@ async def submit_attempt(aid: str, body: AttemptIn, user: User = Depends(get_cur
 
 
 @router.get("/assessments/{aid}/attempts")
-async def list_attempts(aid: str, user: User = Depends(get_current_user)):
+async def list_attempts(aid: str, user: User = Depends(require_learner)):
     return await user_attempts(user.id, aid)
 
 
@@ -213,8 +213,8 @@ async def submit_diagnostic(body: AttemptIn, user: Optional[User] = Depends(get_
         message += " Nous vous conseillons de commencer par le cours C01 « Découvrir l'IA » pour consolider les bases."
     result = {"profile_id": profile_id, "profile_name": profile["name"], "course_id": course_id, "preparatory_course_id": preparatory,
               "knowledge_score": knowledge, "knowledge_max": knowledge_max, "estimated_level": level, "message": message,
-              "assessment_version": version, "saved": bool(user)}
-    if user:
+              "assessment_version": version, "saved": bool(user and user.role == "learner")}
+    if result["saved"]:
         await db.diagnostic_results.insert_one({"user_id": user.id, "answers": body.answers, **result, "created_at": now_iso()})
     return result
 
@@ -274,7 +274,7 @@ async def module_progress(user_id: str, module_id: str) -> dict:
 
 
 @router.post("/learners/me/resources/{resource_id}/complete")
-async def complete_resource(resource_id: str, user: User = Depends(get_current_user)):
+async def complete_resource(resource_id: str, user: User = Depends(require_learner)):
     res = await db.resources.find_one({"_id": resource_id})
     if not res:
         raise HTTPException(404, "Ressource introuvable")
@@ -284,7 +284,7 @@ async def complete_resource(resource_id: str, user: User = Depends(get_current_u
 
 
 @router.get("/learners/me/modules/{module_id}/progress")
-async def get_module_progress(module_id: str, user: User = Depends(get_current_user)):
+async def get_module_progress(module_id: str, user: User = Depends(require_learner)):
     return await module_progress(user.id, module_id)
 
 
@@ -302,7 +302,7 @@ def course_progress(course: dict, mods: Dict[str, dict], done, by_module, resour
 
 
 @router.get("/learners/me/courses/{course_id}/progress")
-async def get_course_progress(course_id: str, user: User = Depends(get_current_user)):
+async def get_course_progress(course_id: str, user: User = Depends(require_learner)):
     courses = {c["id"]: c for c in await published("courses", "course_versions")}
     if course_id not in courses:
         raise HTTPException(404, "Cours introuvable")
@@ -324,12 +324,12 @@ async def attainments_for(user_id: str) -> List[dict]:
 
 
 @router.get("/learners/me/attainments")
-async def get_attainments(user: User = Depends(get_current_user)):
+async def get_attainments(user: User = Depends(require_learner)):
     return await attainments_for(user.id)
 
 
 @router.post("/learners/me/demo-progress")
-async def save_demo_progress(body: DemoProgressIn, user: User = Depends(get_current_user)):
+async def save_demo_progress(body: DemoProgressIn, user: User = Depends(require_learner)):
     scenario = await db.demo_scenarios.find_one({"_id": body.scenario_id})
     if not scenario:
         raise HTTPException(404, "Scénario introuvable")
@@ -346,7 +346,7 @@ async def save_demo_progress(body: DemoProgressIn, user: User = Depends(get_curr
 
 
 @router.get("/learners/me/dashboard")
-async def dashboard(user: User = Depends(get_current_user)):
+async def dashboard(user: User = Depends(require_learner)):
     mods = await modules_by_id()
     courses = await published("courses", "course_versions")
     done, by_module, resources, attempts = await user_state(user.id)

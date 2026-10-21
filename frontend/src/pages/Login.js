@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
-import { formatApiError, safeNext, useAuth } from "@/lib/auth";
+import { formatApiError, homeFor, safeNext, useAuth } from "@/lib/auth";
 import { BTN_PRIMARY, LINK_ARROW } from "@/components/common";
 import { AccountBenefits, AuthShell, Field, FormError } from "@/components/AuthForm";
 
@@ -13,15 +13,15 @@ export default function Login() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  if (user) return <Navigate to={next} replace />;
+  if (user) return <Navigate to={homeFor(user, params.get("suite"))} replace />;
 
   const submit = async (e) => {
     e.preventDefault();
     setBusy(true);
     setError("");
     try {
-      await login(form.email.trim(), form.password);
-      navigate(next, { replace: true });
+      const u = await login(form.email.trim(), form.password);
+      navigate(homeFor(u, params.get("suite")), { replace: true });
     } catch (err) {
       setError(formatApiError(err));
     } finally {

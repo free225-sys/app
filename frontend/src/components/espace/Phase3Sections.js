@@ -10,9 +10,9 @@ export const PathwaysSection = () => {
   const { data } = useApi("/learners/me/pathways");
   return (
     <section aria-labelledby="my-pathways-title" data-testid="espace-pathways">
-      <SectionTitle id="my-pathways-title" eyebrow="Parcours" title="Vos parcours" />
+      <SectionTitle id="my-pathways-title" eyebrow="Parcours" title="Mes parcours" />
       {!data ? null : data.length === 0 ? (
-        <p className="mt-6 text-sm text-[#505e75]" data-testid="espace-pathways-empty">Aucune inscription. <Link to="/parcours" className="font-semibold text-[#147c77] underline">Choisir un parcours</Link></p>
+        <p className="mt-6 text-sm text-[#505e75]" data-testid="espace-pathways-empty">Vous n'êtes inscrit à aucun parcours. <Link to="/parcours" className="font-semibold text-[#147c77] underline">Choisir un parcours</Link></p>
       ) : (
         <ul className="mt-6 grid gap-4 md:grid-cols-2">
           {data.map((p) => (

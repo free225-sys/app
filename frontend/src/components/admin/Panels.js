@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { http, useApi } from "@/lib/api";
 import { formatApiError } from "@/lib/auth";
 import { Loading } from "@/components/common";
-import { BTN_DANGER, BTN_SMALL, INPUT, Notice, StatusBadge, fmtDate, pct } from "./shared";
+import { BTN_DANGER, BTN_SMALL, INPUT, LEGACY_ROLE_LABEL, Notice, StatusBadge, fmtDate, pct } from "./shared";
 
 const ACTIONS = { create: "Création", update: "Modification", new_version: "Nouvelle version", submit: "Soumission", approve: "Approbation", return: "Renvoi",
   publish: "Publication", publish_blocked: "Publication bloquée", retire: "Retrait", revoke: "Révocation", invalidate: "Invalidation", upload: "Téléversement" };
@@ -33,6 +33,9 @@ export const ReviewQueue = ({ open }) => {
     </section>
   );
 };
+
+const CODE_LABEL = { ...LEGACY_ROLE_LABEL, draft: "brouillon", review: "relecture", published: "publiée", retired: "retirée" };
+const humanize = (t) => (t || "").replace(/\b(learner|admin|author|reviewer|evaluator|pedagogical_lead|draft|review|published|retired)\b/g, (m) => CODE_LABEL[m].toLowerCase());
 
 export const ChangeLog = ({ types }) => {
   const [f, setF] = useState({ entity_type: "", action: "", user_email: "", entity_id: "" });
@@ -66,7 +69,7 @@ export const ChangeLog = ({ types }) => {
                   <td className="px-4 py-2 text-xs">{e.user_name}<br /><span className="text-[#627086]">{e.user_email}</span></td>
                   <td className="px-4 py-2 font-mono text-xs">{e.entity_type} · {e.entity_id}{e.version ? ` v${e.version}` : ""}</td>
                   <td className="px-4 py-2 text-xs font-semibold">{ACTIONS[e.action] || e.action}</td>
-                  <td className="px-4 py-2 text-xs">{e.details}</td>
+                  <td className="px-4 py-2 text-xs">{humanize(e.details)}</td>
                 </tr>
               ))}
             </tbody>

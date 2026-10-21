@@ -2,7 +2,7 @@ from typing import Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from auth import User, get_current_user
+from auth import User, get_current_user, require_learner
 from core import EntityVersion, LEVEL_ORDER, db, now_iso, pinned, published, versions_by_key
 from learning import course_progress, module_index, modules_by_id, user_state
 
@@ -104,7 +104,7 @@ async def pathway_progress(user: User, pathway_id: str) -> dict:
 
 
 @router.post("/pathways/{pathway_id}/enroll")
-async def enroll(pathway_id: str, user: User = Depends(get_current_user)):
+async def enroll(pathway_id: str, user: User = Depends(require_learner)):
     existing = await db.enrollments.find_one({"user_id": user.id, "pathway_id": pathway_id})
     if not existing:
         pv = await pathway_version(pathway_id)
@@ -115,12 +115,12 @@ async def enroll(pathway_id: str, user: User = Depends(get_current_user)):
 
 
 @router.get("/learners/me/pathways/{pathway_id}/progress")
-async def get_pathway_progress(pathway_id: str, user: User = Depends(get_current_user)):
+async def get_pathway_progress(pathway_id: str, user: User = Depends(require_learner)):
     return await pathway_progress(user, pathway_id)
 
 
 @router.get("/learners/me/pathways")
-async def my_pathways(user: User = Depends(get_current_user)):
+async def my_pathways(user: User = Depends(require_learner)):
     out = []
     async for e in db.enrollments.find({"user_id": user.id}).sort("enrolled_at", 1):
         p = await pathway_progress(user, e["pathway_id"])

@@ -104,3 +104,16 @@ FARM web app, French UI. "CASA AI Academy" makes AI understandable to non-specia
 ## Backlog
 - P1: per-section progress dots in module reader
 - P2: print-friendly module sheets
+
+
+## Consolidation des rôles 2026-10 (préproduction) — DONE
+- 2 rôles : admin (unique, index unique partiel role=admin) + learner. Admin = admin@casa-academy.com (même _id). Anciens comptes de personnel : learner, inactifs, legacy_roles conservés.
+- JWT avec session_version (sv) ; require_learner sur les écritures d'apprentissage ; admin en lecture seule sur le public ; événements admin non enregistrés.
+- Seeds : plus de comptes de rôles ni de resynchronisation des mots de passe ; admin créé seulement si aucun n'existe.
+- Scripts : scripts/migrate_2026_10_roles.py (dry-run/apply/index), scripts/admin_recover.py, scripts/cleanup_test_runs.py. Docs : memory/ADMIN_RECOVERY.md, memory/MIGRATION_2026_10_ROLES.md.
+- Étape 6 : /espace (Mes parcours / Cours commencés / Cours disponibles), /parcours calculé avec 2 familles, durées pédagogique et de lecture séparées, onglet Évaluation réel (rubrique M16), statuts traduits, compteurs détaillés, mot de passe oublié avec contact.
+- Tests : test_roles_2026_10.py 19/19 ; anciennes suites OK (séparation des rôles ignorée) ; iteration_7 frontend 100 %.
+
+## Backlog
+- P1 : décision sur les 39 comptes QA ; réconciliation P01/P02 ↔ P-001/P-002 ; orphelins préexistants (8 resource_progress, 1 attempt)
+- P2 : réinitialisation de mot de passe par e-mail ; temps du projet dans la durée de M16

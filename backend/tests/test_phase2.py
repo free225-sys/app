@@ -3,13 +3,14 @@ import os
 import uuid
 import time
 import pytest
+from creds import ADMIN
 import requests
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://relais-footer.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
 
-ADMIN_EMAIL = "admin@casa-academy.ci"
-ADMIN_PASSWORD = "Admin2026!"
+ADMIN_EMAIL = ADMIN[0]
+ADMIN_PASSWORD = ADMIN[1]
 
 
 def _fresh_email():

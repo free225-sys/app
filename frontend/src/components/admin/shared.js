@@ -1,11 +1,10 @@
 import { createContext, useContext } from "react";
 
-export const ROLE_LABEL = {
-  learner: "Apprenant", author: "Auteur", reviewer: "Relecteur", evaluator: "Évaluateur", pedagogical_lead: "Responsable pédagogique", admin: "Administrateur",
-};
-export const STAFF = ["author", "reviewer", "evaluator", "pedagogical_lead", "admin"];
-export const REVIEWERS = ["reviewer", "pedagogical_lead", "admin"];
-export const PUBLISHERS = ["pedagogical_lead", "admin"];
+export const ROLE_LABEL = { learner: "Apprenant", admin: "Administrateur" };
+export const LEGACY_ROLE_LABEL = { ...ROLE_LABEL, author: "Auteur", reviewer: "Relecteur", evaluator: "Évaluateur", pedagogical_lead: "Responsable pédagogique" };
+export const STAFF = ["admin"];
+export const REVIEWERS = ["admin"];
+export const PUBLISHERS = ["admin"];
 export const hasRole = (user, roles) => !!user && user.roles.some((r) => roles.includes(r));
 
 export const STATUS_META = {
@@ -16,7 +15,7 @@ export const STATUS_META = {
 };
 
 export const StatusBadge = ({ status, approved, testId }) => {
-  const m = STATUS_META[status] || STATUS_META.draft;
+  const m = STATUS_META[status] || { label: "Statut indisponible", cls: "bg-[#f1f4f7] text-[#505e75]" };
   return (
     <span className={`inline-flex items-center rounded-[10px] px-2 py-0.5 text-xs font-semibold ${m.cls}`} data-testid={testId}>
       {m.label}{status === "review" && approved ? " · approuvée" : ""}

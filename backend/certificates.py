@@ -15,7 +15,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
-from auth import User, get_current_user, require_roles
+from auth import User, get_current_user, require_learner, require_roles
 from core import BaseDocument, LEVEL_ORDER, all_docs, db, log_change, now_iso
 
 router = APIRouter(prefix="/api", tags=["certificates"])
@@ -75,7 +75,7 @@ async def list_credentials():
 
 
 @router.get("/learners/me/credentials")
-async def my_credentials(user: User = Depends(get_current_user)):
+async def my_credentials(user: User = Depends(require_learner)):
     out = []
     for cred in await list_credentials():
         award = await db.awards.find_one({"user_id": user.id, "credential_id": cred["id"]}, sort=[("issued_at", -1)])
@@ -85,7 +85,7 @@ async def my_credentials(user: User = Depends(get_current_user)):
 
 
 @router.post("/credentials/{cid}/claim")
-async def claim(cid: str, user: User = Depends(get_current_user)):
+async def claim(cid: str, user: User = Depends(require_learner)):
     cred = await get_credential(cid)
     existing = await db.awards.find_one({"user_id": user.id, "credential_id": cid, "status": "valid"})
     if existing:
@@ -172,7 +172,7 @@ def render_pdf(a: dict) -> bytes:
 @router.get("/certificates/{code}/pdf")
 async def certificate_pdf(code: str, user: User = Depends(get_current_user)):
     doc = await db.awards.find_one({"code": code})
-    if not doc or (doc["user_id"] != user.id and "admin" not in user.roles):
+    if not doc or (doc["user_id"] != user.id and user.role != "admin"):
         raise HTTPException(404, "Certificat introuvable")
     if doc["status"] != "valid":
         raise HTTPException(410, "Ce certificat a été révoqué.")

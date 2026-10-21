@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
-import { useAuth } from "@/lib/auth";
+import { isAdmin, useAuth } from "@/lib/auth";
 import { CasaLogo } from "./CasaLogo";
 
 export const NAV_LINKS = [
@@ -12,8 +12,6 @@ export const NAV_LINKS = [
   { label: "Ressources", to: "/ressources", testId: "nav-link-ressources" },
 ];
 
-const STAFF_ROLES = ["author", "reviewer", "evaluator", "pedagogical_lead", "admin"];
-
 const AccountLinks = ({ mobile = false }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -23,9 +21,9 @@ const AccountLinks = ({ mobile = false }) => {
   if (!user) return <NavLink to="/connexion" className={cls} data-testid={`${p}nav-link-connexion`}>Se connecter</NavLink>;
   return (
     <>
-      <NavLink to="/espace" className={cls} data-testid={`${p}nav-link-espace`}>Mon espace</NavLink>
-      {user.roles.some((r) => ["evaluator", "admin"].includes(r)) && <NavLink to="/evaluation" className={cls} data-testid={`${p}nav-link-evaluation`}>Évaluation</NavLink>}
-      {user.roles.some((r) => STAFF_ROLES.includes(r)) && <NavLink to="/admin" className={cls} data-testid={`${p}nav-link-admin`}>Admin</NavLink>}
+      {isAdmin(user)
+        ? <NavLink to="/admin" className={cls} data-testid={`${p}nav-link-admin`}>Administration</NavLink>
+        : <NavLink to="/espace" className={cls} data-testid={`${p}nav-link-espace`}>Mon espace</NavLink>}
       <button type="button" className={cls} onClick={async () => { await logout(); navigate("/"); }} data-testid={`${p}logout-button`}>Se déconnecter</button>
     </>
   );

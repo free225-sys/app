@@ -152,7 +152,7 @@ const DemoView = ({ scenario, scenarios, onCase, layers, conceptNames }) => {
     }
   }, [maxStep, total, scenario.id]);
   useEffect(() => {
-    if (!user || scenario.id !== MAIN_ID) return undefined;
+    if (!user || user.role !== "learner" || scenario.id !== MAIN_ID) return undefined;
     const t = setTimeout(() => http.post("/learners/me/demo-progress", { max_step: maxStep, quiz_answers: quiz }).catch(() => {}), 600);
     return () => clearTimeout(t);
   }, [user, maxStep, quiz, scenario.id]);

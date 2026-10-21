@@ -3,6 +3,7 @@ import random
 import requests
 from pymongo import MongoClient
 from dotenv import load_dotenv
+from creds import ADMIN
 
 load_dotenv("/app/backend/.env")
 API = "http://localhost:8001/api"
@@ -33,7 +34,7 @@ sub = requests.post(f"{API}/projects/M16/submissions", headers=h, data={"title":
                     files={"file": ("projet.pdf", b"%PDF-1.4 test", "application/pdf")})
 print("submit", sub.status_code, sub.json().get("status"), sub.json().get("file"))
 sid = sub.json()["id"]
-etok = requests.post(f"{API}/auth/login", json={"email": "evaluator@casa-academy.ci", "password": "Evaluateur2026!"}).json()["access_token"]
+etok = requests.post(f"{API}/auth/login", json={"email": ADMIN[0], "password": ADMIN[1]}).json()["access_token"]
 eh = {"Authorization": f"Bearer {etok}"}
 print("pending", len(requests.get(f"{API}/evaluation/submissions?status=submitted", headers=eh).json()))
 print("file", requests.get(f"{API}/projects/submissions/{sid}/file", headers=eh).content[:8])
@@ -46,7 +47,7 @@ print("award", award["code"], award["verification_url"])
 pdf = requests.get(f"{API}/certificates/{award['code']}/pdf", headers=h)
 print("pdf", pdf.status_code, pdf.headers.get("content-type"), len(pdf.content))
 print("verify", requests.get(f"{API}/verify/{award['code']}").json()["status"])
-atok = requests.post(f"{API}/auth/login", json={"email": "admin@casa-academy.ci", "password": "Admin2026!"}).json()["access_token"]
+atok = requests.post(f"{API}/auth/login", json={"email": ADMIN[0], "password": ADMIN[1]}).json()["access_token"]
 ah = {"Authorization": f"Bearer {atok}"}
 print("revoke", requests.post(f"{API}/admin/certificates/{award['code']}/revoke", headers=ah, json={"reason": "Test de révocation"}).json()["status"])
 print("verify after", requests.get(f"{API}/verify/{award['code']}").json()["status"], requests.get(f"{API}/verify/CASA-XXXX-0000").json()["status"])

@@ -10,7 +10,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
-from auth import User, get_current_user, require_roles
+from auth import User, get_current_user, require_learner, require_roles
 from core import BaseDocument, db, logger, now_iso
 
 router = APIRouter(prefix="/api", tags=["projects"])
@@ -19,7 +19,7 @@ STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https
 STORAGE_URL = STORAGE_BASE.rstrip("/") + "/objstore/api/v1/storage"
 MAX_BYTES = 10 * 1024 * 1024
 ALLOWED = {"pdf": "application/pdf", "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
-REVIEWERS = ("evaluator", "admin")
+REVIEWERS = ("admin",)
 _storage_key = None
 
 
@@ -88,7 +88,7 @@ async def rubric(module_id: str):
 
 @router.post("/projects/{module_id}/submissions")
 async def submit_project(module_id: str, title: str = Form(..., min_length=3, max_length=160), description: str = Form(..., min_length=50, max_length=20000),
-                         file: Optional[UploadFile] = File(None), user: User = Depends(get_current_user)):
+                         file: Optional[UploadFile] = File(None), user: User = Depends(require_learner)):
     rub = await get_rubric(module_id)
     if await db.submissions.find_one({"user_id": user.id, "module_id": module_id, "status": {"$in": ["submitted", "validated"]}}):
         raise HTTPException(409, "Une soumission est déjà en attente d'évaluation ou validée pour ce projet.")
@@ -111,14 +111,14 @@ async def submit_project(module_id: str, title: str = Form(..., min_length=3, ma
 
 
 @router.get("/learners/me/submissions")
-async def my_submissions(user: User = Depends(get_current_user)):
+async def my_submissions(user: User = Depends(require_learner)):
     return [submission_out(d) async for d in db.submissions.find({"user_id": user.id}).sort("submitted_at", -1)]
 
 
 @router.get("/projects/submissions/{sid}/file")
 async def submission_file(sid: str, user: User = Depends(get_current_user)):
     doc = await load_submission(sid)
-    if doc["user_id"] != user.id and not set(REVIEWERS) & set(user.roles):
+    if doc["user_id"] != user.id and user.role != "admin":
         raise HTTPException(403, "Accès réservé.")
     if not doc.get("file") or doc["file"].get("is_deleted"):
         raise HTTPException(404, "Aucun fichier joint")

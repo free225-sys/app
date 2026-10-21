@@ -53,7 +53,7 @@ const ModuleCard = ({ m, layers }) => (
       <div className="mt-5 flex flex-wrap gap-1.5">
         {m.layer_ids.map((id) => { const l = layers.find((x) => x.id === id); return l && <LayerChip key={id} layer={l} />; })}
       </div>
-      <p className="mt-4 text-xs text-[#627086]">{m.resource_count} ressources · {m.duration_hours} h</p>
+      <p className="mt-4 text-xs text-[#627086]">{m.resource_count} ressources · durée pédagogique {m.duration_hours} h</p>
     </Link>
   </li>
 );

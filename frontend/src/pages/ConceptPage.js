@@ -22,7 +22,7 @@ export default function ConceptPage() {
           <p className="mt-5 text-base text-[#505e75] md:text-lg">{c.short}</p>
           <SummaryCard testId="concept-summary" items={[
             { key: "levels", label: "Niveaux", value: <span className="font-mono font-semibold">{levelRange(c.levels) || "L0–L4"}</span> },
-            { key: "duration", label: "Durée estimée", value: <span className="font-semibold" data-testid="concept-duration">{minutes(c.estimated_minutes)}</span> },
+            { key: "duration", label: "Temps de lecture", value: <span className="font-semibold" data-testid="concept-duration">{minutes(c.estimated_minutes)}</span> },
             { key: "layers", label: "Couches", value: c.layers.map((l) => <LayerChip key={l.id} layer={l} />) },
             { key: "competencies", label: "Compétences visées", value: c.competencies.length ? c.competencies.map((k) => <Pill key={k.id}><Picto id={k.id} category={k.category_id} size={13} />{k.name}</Pill>) : null },
             { key: "prerequisites", label: "Prérequis", value: c.prerequisites.length ? c.prerequisites.map((p) => (

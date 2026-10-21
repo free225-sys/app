@@ -2,6 +2,7 @@ import os
 import uuid
 
 import requests
+from creds import ADMIN
 
 API = os.environ.get("API_URL", "http://localhost:8001") + "/api"
 
@@ -12,10 +13,8 @@ def login(email, pw):
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
-A = login("author@casa-academy.ci", "Auteur2026!")
-R = login("reviewer@casa-academy.ci", "Relecteur2026!")
-LD = login("lead@casa-academy.ci", "Responsable2026!")
-AD = login("admin@casa-academy.ci", "Admin2026!")
+AD = login(*ADMIN)
+A = R = LD = AD
 
 print("author users:", requests.get(f"{API}/admin/users", headers=A).status_code)
 print("admin users:", requests.get(f"{API}/admin/users", headers=AD).status_code)

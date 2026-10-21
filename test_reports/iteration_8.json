@@ -1,0 +1,27 @@
+{
+  "summary": "Iteration 8 (focused re-test of 3 follow-up fixes). Backend: ran /app/backend/tests/test_roles_2026_10.py with 'cd /app/backend/tests && set -a && . ../.env && set +a && python3 -m pytest -q -n 0 test_roles_2026_10.py' → 27/27 PASS in 25.4s (JUnit at /app/test_reports/pytest/iter8_roles.xml). This includes the two targeted parametrized tests: test_patch_user_rejects_privileged_or_unknown_fields (7 variants: role, roles, is_admin, legacy_roles, session_version, is_active, email → each returns 400 with 'Champ non autorisé : <field>. Champs modifiables : active, first_name, last_name, password.', user doc unchanged, 401 for visitor) and test_certificate_pdf_ownership (learner A → 404, learner B → 200 %PDF, admin → 200 %PDF, visitor → 401, test award deleted, final db.awards.valid == 0). State checks via Mongo: qa-e1-* users = 0, qa-role-* users = 0 (post-cleanup), awards total = 6 / valid = 0 / revoked = 6, admin count = 1 — matches spec exactly. Frontend UI check on /admin > Apprenants (desktop 1440x900, admin@casa-academy.com / Admin2026!): created a qa-role-ui-* learner via the inline form, clicked user-deactivate-<email> (OK), clicked user-activate-<email> (OK, returned to 'Actif'), opened user-temp-password-<email>, filled user-temp-password-input-<email> with new temp password and clicked user-temp-password-save-<email> → success banner 'Mot de passe provisoire enregistré. Les sessions ouvertes de ce compte sont fermées.' visible. All QA artefacts deleted (1 account, zero collateral data).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_roles_2026_10.py",
+    "/app/test_reports/pytest/iter8_roles.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "backend/admin.py update_user_body (lines 610-620) correctly enforces the allowlist against the raw JSON body BEFORE Pydantic coercion, so privileged keys like role / is_admin / session_version are rejected with 400 and an explicit French message naming the field and listing the four modifiable fields — not silently dropped. The error path precedes auth-independent parsing, but FastAPI resolves require_roles('admin') first on the route, so visitor still gets 401 and learner 403 before the body is inspected (verified by test).",
+    "backend/certificates.py certificate_pdf (lines 172-180) correctly scopes the award to doc['user_id'] == user.id OR user.role == 'admin', returning 404 (not 403, but spec allows 403/404 — current choice is 404 which is a reasonable 'resource hidden' pattern). Response is a proper application/pdf with Content-Disposition and the body starts with %PDF (asserted).",
+    "No qa-e1-* residues; database state (6 revoked / 0 valid certificates, single admin) matches the preproduction expectation. No action needed."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "100% (27/27 test_roles_2026_10.py)", "frontend": "100% (Apprenants create/deactivate/reactivate/temp-password flows OK)" },
+  "test_credentials": "Used /app/memory/test_credentials.md as-is (admin@casa-academy.com / Admin2026!).",
+  "seed_data_creation": "Transient only: pytest fixtures created ~2 qa-role- learners for the targeted tests and the UI test created qa-role-ui-90049@example.com. All deleted after the run via test_zz_cleanup_qa_role and a manual Mongo cleanup script. Final qa-role-* count = 0, qa-e1-* count = 0, awards total = 6 (0 valid, 6 revoked).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Three follow-up fixes confirmed working: (1) PATCH /api/admin/users/{uid} rejects any of {role, roles, is_admin, legacy_roles, session_version, is_active, email} with 400 'Champ non autorisé : <field>. Champs modifiables : active, first_name, last_name, password.' and leaves the document untouched; allowed fields (active, first_name, last_name, password) still work. (2) /api/certificates/{code}/pdf is ownership-scoped: other learner → 404, owner → 200 %PDF, admin → 200 %PDF, visitor → 401. (3) qa-e1-* purge is complete. Pytest invocation: cd /app/backend/tests && set -a && . ../.env && set +a && python3 -m pytest -q -n 0 test_roles_2026_10.py (always -n 0).",
+  "rca of the issue": "N/A — no regression. All three fixes behave as specified by the review request."
+}

@@ -7,8 +7,8 @@ from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
 from bson.errors import InvalidId
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from pydantic import BaseModel, EmailStr, Field
+from fastapi import Request, APIRouter, Depends, File, HTTPException, Query, UploadFile
+from pydantic import ValidationError, BaseModel, EmailStr, Field
 from starlette.concurrency import run_in_threadpool
 
 from auth import ROLES, User, get_optional_user, hash_password, require_roles
@@ -17,11 +17,11 @@ import projects
 
 router = APIRouter(prefix="/api", tags=["admin"])
 
-STAFF = ("author", "reviewer", "evaluator", "pedagogical_lead", "admin")
-AUTHORS = ("author", "pedagogical_lead", "admin")
-ASSESSORS = ("author", "evaluator", "pedagogical_lead", "admin")
-REVIEWERS = ("reviewer", "pedagogical_lead", "admin")
-PUBLISHERS = ("pedagogical_lead", "admin")
+STAFF = ("admin",)
+AUTHORS = ("admin",)
+ASSESSORS = ("admin",)
+REVIEWERS = ("admin",)
+PUBLISHERS = ("admin",)
 S, L, D, N = str, list, dict, (int, float)
 BRIDGE = {"module_recognition": "same_module_version", "accepted_evidence_types": ["graded_attempt", "project"]}
 
@@ -61,7 +61,7 @@ def who(user: User) -> dict:
 
 
 def has(user: User, roles) -> bool:
-    return bool(set(roles) & set(user.roles))
+    return user.role in roles
 
 
 def ensure(user: User, roles, message="Action non autorisée pour votre rôle."):
@@ -460,7 +460,7 @@ async def submit_version(t: str, eid: str, user: User = Depends(require_roles(*S
 @router.post("/admin/versions/{t}/{eid}/review")
 async def review_version(t: str, eid: str, body: ReviewIn, user: User = Depends(require_roles(*STAFF))):
     cfg = cfg_of(t)
-    ensure(user, REVIEWERS, "Seuls les relecteurs, responsables pédagogiques et administrateurs peuvent relire.")
+    ensure(user, REVIEWERS, "Seul l'administrateur peut relire.")
     cur = await latest_of(t, eid)
     if cur["status"] != "review":
         raise HTTPException(409, "Aucune version en relecture pour ce contenu.")
@@ -477,7 +477,7 @@ async def review_version(t: str, eid: str, body: ReviewIn, user: User = Depends(
 @router.post("/admin/versions/{t}/{eid}/publish")
 async def publish_version(t: str, eid: str, user: User = Depends(require_roles(*STAFF))):
     cfg = cfg_of(t)
-    ensure(user, PUBLISHERS, "Seuls le responsable pédagogique et l'administrateur peuvent publier.")
+    ensure(user, PUBLISHERS, "Seul l'administrateur peut publier.")
     cur = await latest_of(t, eid)
     if cur["status"] != "review" or not cur.get("approved"):
         raise HTTPException(409, "La version doit être approuvée en relecture avant publication.")
@@ -496,7 +496,7 @@ async def publish_version(t: str, eid: str, user: User = Depends(require_roles(*
 @router.post("/admin/versions/{t}/{eid}/retire")
 async def retire_version(t: str, eid: str, body: RetireIn, user: User = Depends(require_roles(*STAFF))):
     cfg = cfg_of(t)
-    ensure(user, PUBLISHERS, "Seuls le responsable pédagogique et l'administrateur peuvent retirer une version.")
+    ensure(user, PUBLISHERS, "Seul l'administrateur peut retirer une version.")
     ent = await entity_doc(t, eid)
     v = body.version or (ent or {}).get("published_version")
     doc = await db[cfg["versions"]].find_one({"entity_id": eid, "version": v})
@@ -564,32 +564,26 @@ class UserCreateIn(BaseModel):
     first_name: str = Field(min_length=1, max_length=80)
     last_name: str = Field(min_length=1, max_length=80)
     password: str = Field(min_length=8, max_length=128)
-    roles: List[str] = Field(min_length=1)
 
 
 class UserPatchIn(BaseModel):
-    roles: Optional[List[str]] = None
     active: Optional[bool] = None
     first_name: Optional[str] = Field(None, min_length=1, max_length=80)
     last_name: Optional[str] = Field(None, min_length=1, max_length=80)
     password: Optional[str] = Field(None, min_length=8, max_length=128)
 
 
-def check_roles(roles: List[str]):
-    bad = [r for r in roles if r not in ROLES]
-    if bad or not roles:
-        raise HTTPException(400, f"Rôle inconnu : {', '.join(bad) or 'aucun rôle'}.")
-
 
 def user_out(doc: dict) -> dict:
     u = User.from_mongo(doc).public()
     u["active"] = doc.get("active", True)
+    u["legacy_roles"] = doc.get("legacy_roles", [])
     return u
 
 
 @router.get("/admin/users")
 async def list_users(q: Optional[str] = Query(None, max_length=120), role: Optional[str] = None, user: User = Depends(require_roles("admin"))):
-    query = {"roles": role} if role else {}
+    query = {"role": role} if role else {}
     docs = await db.users.find(query).sort("created_at", -1).to_list(2000)
     out = [user_out(d) for d in docs]
     if q:
@@ -599,36 +593,46 @@ async def list_users(q: Optional[str] = Query(None, max_length=120), role: Optio
 
 @router.post("/admin/users")
 async def create_user(body: UserCreateIn, user: User = Depends(require_roles("admin"))):
-    check_roles(body.roles)
     email = body.email.lower()
     if await db.users.find_one({"email": email}):
         raise HTTPException(409, "Un compte existe déjà avec cette adresse e-mail.")
-    doc = {"email": email, "first_name": body.first_name.strip(), "last_name": body.last_name.strip(), "roles": sorted(set(body.roles)),
+    doc = {"email": email, "first_name": body.first_name.strip(), "last_name": body.last_name.strip(), "role": "learner", "session_version": 0,
            "password_hash": hash_password(body.password), "active": True, "created_at": now_iso(), "created_by": user.id}
     res = await db.users.insert_one(doc)
     doc["_id"] = res.inserted_id
-    await log_change(user, "user", email, "create", f"Compte créé — rôles : {', '.join(doc['roles'])}")
+    await log_change(user, "user", email, "create", "Compte apprenant créé")
     return user_out(doc)
 
 
+PATCH_FIELDS = set(UserPatchIn.model_fields)
+
+
+async def update_user_body(request: Request) -> UserPatchIn:
+    raw = await request.json()
+    if not isinstance(raw, dict):
+        raise HTTPException(400, "Corps de requête invalide.")
+    bad = sorted(set(raw) - PATCH_FIELDS)
+    if bad:
+        raise HTTPException(400, f"Champ non autorisé : {', '.join(bad)}. Champs modifiables : {', '.join(sorted(PATCH_FIELDS))}.")
+    try:
+        return UserPatchIn(**raw)
+    except ValidationError as e:
+        raise HTTPException(400, f"Valeur invalide : {e.errors()[0]['loc'][0]}.")
+
+
 @router.patch("/admin/users/{uid}")
-async def update_user(uid: str, body: UserPatchIn, user: User = Depends(require_roles("admin"))):
+async def update_user(uid: str, user: User = Depends(require_roles("admin")), body: UserPatchIn = Depends(update_user_body)):
     try:
         doc = await db.users.find_one({"_id": ObjectId(uid)})
     except InvalidId:
         doc = None
     if not doc:
         raise HTTPException(404, "Utilisateur introuvable")
-    update, notes = {}, []
-    if body.roles is not None:
-        check_roles(body.roles)
-        if uid == user.id and "admin" not in body.roles:
-            raise HTTPException(400, "Vous ne pouvez pas retirer votre propre rôle d'administrateur.")
-        update["roles"] = sorted(set(body.roles))
-        notes.append(f"rôles : {', '.join(update['roles'])}")
+    update, notes, bump = {}, [], False
+    if doc.get("role") == "admin" and (body.active is False or body.password):
+        raise HTTPException(400, "Le compte administrateur ne peut être ni désactivé ni réinitialisé depuis l'interface. Utilisez la procédure de récupération serveur.")
     if body.active is not None:
-        if uid == user.id and not body.active:
-            raise HTTPException(400, "Vous ne pouvez pas désactiver votre propre compte.")
+        bump = bump or body.active is False
         update["active"] = body.active
         notes.append("compte réactivé" if body.active else "compte désactivé")
     for f in ("first_name", "last_name"):
@@ -637,9 +641,10 @@ async def update_user(uid: str, body: UserPatchIn, user: User = Depends(require_
             notes.append(f"{f} modifié")
     if body.password:
         update["password_hash"] = hash_password(body.password)
-        notes.append("mot de passe réinitialisé")
+        notes.append("mot de passe provisoire défini")
+        bump = True
     if update:
-        await db.users.update_one({"_id": doc["_id"]}, {"$set": update})
+        await db.users.update_one({"_id": doc["_id"]}, {"$set": update, **({"$inc": {"session_version": 1}} if bump else {})})
         await log_change(user, "user", doc["email"], "update", " ; ".join(notes))
     return user_out(await db.users.find_one({"_id": doc["_id"]}))
 
@@ -654,6 +659,8 @@ class EventIn(BaseModel):
 
 @router.post("/events")
 async def track_event(body: EventIn, user: Optional[User] = Depends(get_optional_user)):
+    if user and user.role == "admin":
+        return {"ok": True, "recorded": False}
     await db.events.insert_one({"type": body.type, "session_id": body.session_id, "layer_id": body.layer_id, "step": body.step,
                                 "user_id": user.id if user else None, "at": now_iso()})
     return {"ok": True}
@@ -669,7 +676,12 @@ async def analytics(user: User = Depends(require_roles(*STAFF))):
     m01 = set(await db.resource_progress.distinct("user_id", {"module_id": "M01"})) | set(await db.attempts.distinct("user_id", {"module_id": "M01"}))
     graded, passed = await db.attempts.count_documents({"kind": "graded"}), await db.attempts.count_documents({"kind": "graded", "passed": True})
     since = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
-    roles = {d["_id"]: d["n"] async for d in db.users.aggregate([{"$unwind": "$roles"}, {"$group": {"_id": "$roles", "n": {"$sum": 1}}}])}
+    roles = {d["_id"]: d["n"] async for d in db.users.aggregate([{"$match": {"active": {"$ne": False}}}, {"$group": {"_id": "$role", "n": {"$sum": 1}}}])}
+    questions = {"graded": 0, "formative": 0, "diagnostic": 0}
+    async for a in db.assessments.find({"published_version": {"$ne": None}}):
+        v = await db.assessment_versions.find_one({"entity_id": a["_id"], "version": a["published_version"]})
+        if v:
+            questions[v.get("kind", "other")] = questions.get(v.get("kind", "other"), 0) + len(v.get("questions", []))
     content = {}
     for t, cfg in TYPES.items():
         statuses = {d["_id"]: d["n"] async for d in db[cfg["versions"]].aggregate([{"$group": {"_id": "$status", "n": {"$sum": 1}}}])}
@@ -679,8 +691,9 @@ async def analytics(user: User = Depends(require_roles(*STAFF))):
         "demo": {"starts": starts, "completions": completes, "completion_rate": rate(completes, starts), "layer_clicks": clicks, "by_layer": by_layer},
         "learning": {"m01_starters": len(m01), "graded_attempts": graded, "graded_passed": passed, "success_rate": rate(passed, graded),
                      "module_completions": await db.module_completions.count_documents({}), "enrollments": await db.enrollments.count_documents({})},
-        "users": {"total": await db.users.count_documents({}), "registrations_30d": await db.users.count_documents({"created_at": {"$gte": since}}), "by_role": roles},
-        "credentials": {"issued": await db.awards.count_documents({}), "valid": await db.awards.count_documents({"status": "valid"}),
+        "questions": {**questions, "total": sum(questions.values()), "bank": await db.question_bank.count_documents({})},
+        "users": {"total": await db.users.count_documents({}), "inactive": await db.users.count_documents({"active": False}), "registrations_30d": await db.users.count_documents({"created_at": {"$gte": since}}), "by_role": roles},
+        "credentials": {"catalog": await db.credentials.count_documents({"published_version": {"$ne": None}}), "issued": await db.awards.count_documents({}), "valid": await db.awards.count_documents({"status": "valid"}),
                         "revoked": await db.awards.count_documents({"status": "revoked"})},
         "projects": {s: await db.submissions.count_documents({"status": s}) for s in ("submitted", "validated", "rejected")},
         "content": content,

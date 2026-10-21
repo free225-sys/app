@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, BadgeCheck } from "lucide-react";
 import { http, useApi, useCatalog } from "@/lib/api";
-import { formatApiError, useAuth } from "@/lib/auth";
+import { formatApiError, isAdmin, useAuth } from "@/lib/auth";
 import { BTN_PRIMARY, Container, ErrorState, Eyebrow, LINK_ARROW, Loading, ProgressBar, SectionTitle, levelRange } from "@/components/common";
 import { StatusPill } from "@/pages/CourseReader";
 
@@ -67,7 +67,7 @@ export default function PathwayPage() {
   const [prog, setProg] = useState(null);
   const [err, setErr] = useState("");
   useEffect(() => {
-    if (user) http.get(`/learners/me/pathways/${id}/progress`).then((r) => setProg(r.data)).catch(() => {});
+    if (user && !isAdmin(user)) http.get(`/learners/me/pathways/${id}/progress`).then((r) => setProg(r.data)).catch(() => {});
   }, [user, id]);
 
   if (error) return <ErrorState message="Ce parcours est introuvable." />;
@@ -97,7 +97,7 @@ export default function PathwayPage() {
             <p className="mt-5 max-w-3xl text-base leading-relaxed text-[#505e75] md:text-lg">{pathway.summary}</p>
           </div>
           <div className="self-end lg:col-span-4">
-            {prog?.enrolled ? (
+            {isAdmin(user) ? <p className="text-sm text-[#505e75]" data-testid="pathway-admin-readonly">Mode administrateur : consultation en lecture seule.</p> : prog?.enrolled ? (
               <div data-testid="pathway-enrolled">
                 <p className="text-sm font-semibold">Inscrit depuis le {date(prog.enrolled_at)}</p>
                 <div className="mt-3 flex justify-between text-xs"><span>Cours obligatoires</span><span className="font-mono" data-testid="pathway-percent">{Math.round(prog.percent * 100)} %</span></div>

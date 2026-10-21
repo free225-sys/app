@@ -5,12 +5,17 @@ import { useApi, useCatalog } from "@/lib/api";
 import { Container, ErrorState, Eyebrow, LINK_ARROW, Loading, PageHeader, SectionTitle, levelRange } from "@/components/common";
 import { Picto } from "@/components/Pictos";
 
+const families = (pathways) => [
+  { id: "socle", label: "Parcours du socle", text: "Parcours historiques de l'académie, codes P01 et P02, construits sur les cours C01 à C04.", items: pathways.filter((p) => /^P\d+$/.test(p.code)) },
+  { id: "catalogue", label: "Parcours du catalogue documentaire", text: "Parcours issus du catalogue importé, codes P-001 et P-002, construits sur les cours CO-001 et CO-002.", items: pathways.filter((p) => !/^P\d+$/.test(p.code)) },
+].filter((f) => f.items.length);
+
 const CourseBlock = ({ course, shared }) => (
   <li id={course.id} className="scroll-mt-24 border border-[#e5e9ef] bg-white" data-testid={`course-${course.id}`}>
     <div className="border-b border-[#e5e9ef] p-6">
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
         <span className="font-mono font-semibold text-[#147c77]">Cours {course.code}</span>
-        <span className="font-mono text-[#627086]">{levelRange(course.levels)} · {course.duration_hours} h</span>
+        <span className="font-mono text-[#627086]">{levelRange(course.levels)} · durée pédagogique {course.duration_hours} h</span>
       </div>
       <h4 className="mt-2 text-xl font-semibold"><Link to={`/courses/${course.id}`} className="hover:underline" data-testid={`course-open-link-${course.id}`}>{course.title}</Link></h4>
       <p className="mt-2 text-sm leading-relaxed text-[#505e75]">{course.summary}</p>
@@ -41,7 +46,7 @@ export default function Parcours() {
 
   return (
     <div data-testid="parcours-page">
-      <PageHeader eyebrow="Parcours" title="Quatre entrées, deux parcours, un même socle."
+      <PageHeader eyebrow="Parcours" title={pathways && catalog ? `${catalog.profiles.length} entrées, ${pathways.length} parcours, un même socle.` : "Entrées et parcours"}
         lead="Choisissez une entrée selon votre rôle ; vos acquis vous suivent d'un parcours à l'autre."
         more={<p>Chaque parcours assemble des cours, eux-mêmes composés de modules. Un module peut servir plusieurs cours : il est rédigé une fois et mis à jour partout.</p>}>
         <Link to="/diagnostic" className={`${LINK_ARROW} mt-8`} data-testid="parcours-diagnostic-link">Hésitez-vous ? Passez le test de positionnement (8 questions) <ArrowRight size={14} aria-hidden="true" /></Link>
@@ -71,10 +76,14 @@ export default function Parcours() {
           </section>
           <section className="border-t border-[#e5e9ef] py-16 sm:py-20" aria-labelledby="pathways-title">
             <Container>
-              <SectionTitle id="pathways-title" eyebrow="Parcours" title="Deux parcours structurés"
+              <SectionTitle id="pathways-title" eyebrow="Parcours" title={`${pathways.length} parcours structurés`}
                 lead="Des cours obligatoires et optionnels, des compétences cibles et un certificat." />
-              <div className="mt-12 space-y-16">
-                {pathways.map((p) => (
+              {families(pathways).map((fam) => (
+              <div key={fam.id} className="mt-14" data-testid={`pathway-family-${fam.id}`}>
+                <h3 className="text-lg">{fam.label} <span className="ml-2 font-mono text-sm text-[#627086]">{fam.items.length} parcours</span></h3>
+                <p className="mt-2 max-w-[68ch] text-sm text-[#505e75]">{fam.text}</p>
+              <div className="mt-10 space-y-16">
+                {fam.items.map((p) => (
                   <article key={p.id} id={p.id} className="scroll-mt-24" data-testid={`pathway-${p.id}`}>
                     <div className="grid gap-4 lg:grid-cols-12">
                       <div className="lg:col-span-4">
@@ -83,7 +92,7 @@ export default function Parcours() {
                         <p className="mt-3 text-sm leading-relaxed text-[#505e75]">{p.summary}</p>
                         <Link to={`/pathways/${p.id}`} className={`${LINK_ARROW} mt-4`} data-testid={`pathway-enroll-link-${p.id}`}>Voir le parcours et s'inscrire <ArrowRight size={14} aria-hidden="true" /></Link>
                         <p className="mt-4 text-xs text-[#627086]">
-                          Profils : {p.profile_ids.map((id) => catalog.profiles.find((x) => x.id === id)?.name).join(", ")} · Version {p.version}
+                          Public : {p.profile_ids.map((id) => catalog.profiles.find((x) => x.id === id)?.name).join(", ")} · Version {p.version}
                         </p>
                       </div>
                       <ul className="grid gap-5 lg:col-span-8 xl:grid-cols-2">
@@ -93,6 +102,8 @@ export default function Parcours() {
                   </article>
                 ))}
               </div>
+              </div>
+              ))}
               <p className="mt-12 text-sm text-[#505e75]">
                 Les modules marqués « Partagé » figurent dans plusieurs cours : il s'agit du même module, maintenu en un seul endroit.
               </p>

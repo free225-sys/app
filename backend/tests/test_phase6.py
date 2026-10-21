@@ -4,6 +4,7 @@ Backend checks: estimated_minutes present and int on modules/concepts/courses.
 import os
 import requests
 from dotenv import load_dotenv
+from creds import LEARNER
 
 load_dotenv("/app/frontend/.env")
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL").rstrip("/")
@@ -49,7 +50,7 @@ class TestAuthForFrontendFlow:
     def test_learner_login(self):
         r = requests.post(
             f"{BASE_URL}/api/auth/login",
-            json={"email": "apprenant@casa-academy.ci", "password": "Apprenant2026!"},
+            json={"email": LEARNER[0], "password": LEARNER[1]},
             timeout=20,
         )
         assert r.status_code == 200, r.text

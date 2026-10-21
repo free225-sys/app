@@ -16,7 +16,7 @@ export const Dashboard = () => {
   const { data, error } = useApi("/admin/analytics");
   if (error) return <Notice kind="error">{formatApiError(error)}</Notice>;
   if (!data) return <Loading />;
-  const { demo, learning, users, credentials, projects, content } = data;
+  const { demo, learning, users, credentials, projects, content, questions } = data;
   const maxLayer = Math.max(1, ...demo.by_layer.map((l) => l.count));
   return (
     <section aria-labelledby="dash-title" data-testid="admin-dashboard">
@@ -29,8 +29,9 @@ export const Dashboard = () => {
         <Stat label="Apprenants ayant commencé M01" value={learning.m01_starters} testId="stat-m01-starters" />
         <Stat label="Réussite aux quiz notés" value={pct(learning.success_rate)} sub={`${learning.graded_passed} réussites / ${learning.graded_attempts} tentatives`} testId="stat-quiz-success" />
         <Stat label="Inscriptions" value={users.total} sub={`${users.registrations_30d} sur les 30 derniers jours`} testId="stat-registrations" />
-        <Stat label="Certificats délivrés" value={credentials.issued} sub={`${credentials.valid} valides`} testId="stat-certificates-issued" />
-        <Stat label="Certificats révoqués" value={credentials.revoked} testId="stat-certificates-revoked" />
+        <Stat label="Certifications au catalogue" value={credentials.catalog} sub="Modèles de certificat publiés" testId="stat-credentials-catalog" />
+        <Stat label="Certificats délivrés" value={credentials.issued} sub={`${credentials.valid} valides · ${credentials.revoked} révoqués`} testId="stat-certificates-issued" />
+        <Stat label="Questions publiées" value={questions.total} sub={`Notées ${questions.graded} · formatives ${questions.formative} · positionnement ${questions.diagnostic}`} testId="stat-questions" />
       </div>
       <div className="mt-10 grid gap-8 lg:grid-cols-2">
         <div className="border border-[#e5e9ef] bg-white p-5" data-testid="dash-layers">
@@ -53,7 +54,7 @@ export const Dashboard = () => {
             <dt>Inscriptions à un parcours</dt><dd className="text-right font-mono">{learning.enrollments}</dd>
             <dt>Projets en attente</dt><dd className="text-right font-mono">{projects.submitted}</dd>
             <dt>Projets validés / refusés</dt><dd className="text-right font-mono">{projects.validated} / {projects.rejected}</dd>
-            {Object.entries(users.by_role).map(([r, n]) => (<Fragment key={r}><dt>Comptes {ROLE_LABEL[r] || r}</dt><dd className="text-right font-mono">{n}</dd></Fragment>))}
+            {Object.entries(users.by_role).map(([r, n]) => (<Fragment key={r}><dt>Comptes actifs — {ROLE_LABEL[r] || "rôle inconnu"}</dt><dd className="text-right font-mono">{n}</dd></Fragment>))}
           </dl>
         </div>
       </div>

@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { http, useApi } from "@/lib/api";
-import { STATUS_LABEL, useAuth } from "@/lib/auth";
+import { STATUS_LABEL, statusLabel, useAuth } from "@/lib/auth";
 import { BTN_PRIMARY, Container, ErrorState, Eyebrow, LINK_ARROW, Loading, ProgressBar, levelRange } from "@/components/common";
 
 const STATUS_STYLE = { completed: "bg-[#eef5f3] text-[#147c77]", in_progress: "bg-[#EDF3F8] text-[#254a98]", not_started: "bg-[#f1f4f7] text-[#627086]" };
 
 export const StatusPill = ({ status, testId }) => (
-  <span className={`rounded-[10px] px-2 py-0.5 text-xs font-semibold ${STATUS_STYLE[status]}`} data-testid={testId}>{STATUS_LABEL[status]}</span>
+  <span className={`rounded-[10px] px-2 py-0.5 text-xs font-semibold ${STATUS_STYLE[status]}`} data-testid={testId}>{statusLabel(status)}</span>
 );
 
 export const learnUrl = (resume) => `/modules/${resume.module_id}/learn?etape=${resume.resource_id || "evaluation"}`;
@@ -19,7 +19,7 @@ export default function CourseReader() {
   const { data: course, loading, error } = useApi(`/courses/${id}`);
   const [prog, setProg] = useState(null);
   useEffect(() => {
-    if (user) http.get(`/learners/me/courses/${id}/progress`).then((r) => setProg(r.data)).catch(() => setProg(null));
+    if (user && user.role === "learner") http.get(`/learners/me/courses/${id}/progress`).then((r) => setProg(r.data)).catch(() => setProg(null));
   }, [user, id]);
 
   if (error) return <ErrorState message="Ce cours est introuvable." />;
@@ -38,7 +38,7 @@ export default function CourseReader() {
       <header className="border-b border-[#e5e9ef] pb-12 pt-8">
         <Container className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-8">
-            <Eyebrow>Cours {course.code} · {levelRange(course.levels)} · ~ {course.estimated_minutes} min</Eyebrow>
+            <Eyebrow>Cours {course.code} · {levelRange(course.levels)} · durée pédagogique {course.duration_hours} h · lecture ~ {course.reading_minutes} min</Eyebrow>
             <h1 className="mt-5 text-4xl sm:text-5xl" data-testid="course-title">{course.title}</h1>
             <p className="mt-5 max-w-3xl text-base leading-relaxed text-[#505e75] md:text-lg">{course.summary}</p>
           </div>
@@ -71,7 +71,7 @@ export default function CourseReader() {
                     <span className="font-mono text-xs font-semibold text-[#147c77]">{m.code}</span>
                     <span className="ml-2 text-base font-semibold group-hover:underline">{m.title}</span>
                   </Link>
-                  <p className="mt-1 text-xs text-[#627086]">{levelRange(m.levels)} · {m.resource_count} ressources · ~ {m.estimated_minutes} min{m.optional ? " · optionnel" : ""}</p>
+                  <p className="mt-1 text-xs text-[#627086]">{levelRange(m.levels)} · {m.resource_count} ressources · durée pédagogique {m.duration_hours} h · lecture ~ {m.reading_minutes} min{m.optional ? " · optionnel" : ""}</p>
                 </div>
                 <div className="flex items-center gap-3 md:justify-end">
                   {p ? (

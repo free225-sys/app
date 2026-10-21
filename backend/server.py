@@ -98,13 +98,7 @@ def count_words(*texts) -> int:
 async def module_minutes(mod: dict) -> int:
     res = await db.resources.find({"_id": {"$in": mod.get("resource_ids", [])}}).to_list(100)
     words = sum(count_words(sec.get("heading"), sec.get("body")) for r in res for sec in r.get("sections") or [])
-    questions = 0
-    for suffix in ("F", "G"):
-        a = await db.assessments.find_one({"_id": f"A-{mod['id']}-{suffix}"})
-        if a and a.get("published_version"):
-            v = await db.assessment_versions.find_one({"entity_id": a["_id"], "version": a["published_version"]})
-            questions += len((v or {}).get("questions", []))
-    return max(1, round(words / 200 + questions))
+    return max(1, round(words / 200))
 
 
 def module_summary(mod: dict) -> dict:
@@ -277,7 +271,7 @@ async def get_module(module_id: str):
     mod["layers"] = pick(layers, mod["layer_ids"], ["id", "name", "color", "short"])
     mod["competencies"] = pick(comps, mod["competency_ids"], ["id", "name", "description", "category_id"])
     mod["prerequisite_modules"] = pick(modules, mod["prerequisite_module_ids"], ["id", "code", "title"])
-    mod["estimated_minutes"] = await module_minutes(mod)
+    mod["estimated_minutes"] = mod["reading_minutes"] = await module_minutes(mod)
     concepts = await all_docs("concepts", "_id")
     mod["concepts"] = [{"id": c["id"], "name": c["name"], "short": c["short"]} for c in concepts if module_id in c["module_ids"]]
     courses = await published("courses", "course_versions")
@@ -322,8 +316,8 @@ async def course_detail(course: dict, modules: List[dict]) -> dict:
     for mid in course["module_ids"]:
         mod = pinned(versions, mid, pins.get(mid)) or by_id.get(mid)
         if mod:
-            course["modules"].append({**module_summary(mod), "pinned_version": mod["version"], "optional": mid in optional, "estimated_minutes": await module_minutes(mod)})
-    course["estimated_minutes"] = sum(m["estimated_minutes"] for m in course["modules"])
+            course["modules"].append({**module_summary(mod), "pinned_version": mod["version"], "optional": mid in optional, "estimated_minutes": (rm := await module_minutes(mod)), "reading_minutes": rm})
+    course["estimated_minutes"] = course["reading_minutes"] = sum(m["reading_minutes"] for m in course["modules"])
     return course
 
 
