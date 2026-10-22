@@ -17,6 +17,7 @@ const ResultPanel = ({ result, compNames, onRetry }) => {
           {attempt.passed ? "Évaluation réussie" : "Seuil non atteint"} — {attempt.score}/{attempt.max_score} ({pct(attempt.percent)})
         </p>
       </div>
+      {attempt.level_evaluated && <p className="mt-2 text-sm font-semibold" data-testid="graded-level-evaluated">Niveau évalué : {attempt.level_evaluated} ({attempt.module_id} v{attempt.module_version})</p>}
       <p className="mt-2 text-sm">Tentative {attempt.attempt_number} sur {status.max_attempts}. {status.remaining} tentative{status.remaining > 1 ? "s" : ""} restante{status.remaining > 1 ? "s" : ""}.</p>
       <ul className="mt-4 grid gap-2 sm:grid-cols-2" data-testid="graded-result-competencies">
         {attempt.per_competency.map((c) => (
@@ -84,6 +85,7 @@ export const GradedQuiz = ({ moduleId, compNames, onSubmitted }) => {
       </p>
       <div className="mt-8">{result && <ResultPanel result={result} compNames={compNames} onRetry={retry} />}</div>
       {!result && status.passed && <p className="mt-6 border-l-2 border-[#147c77] bg-[#eef5f3] px-4 py-3 text-sm" data-testid="graded-already-passed">Vous avez déjà réussi cette évaluation. Une nouvelle tentative reste possible dans la limite autorisée.</p>}
+      {status.extra_attempt_available && <p className="mb-3 text-sm font-semibold text-[#147c77]" role="status" data-testid="graded-extra-attempt">1 tentative supplémentaire accordée par l'administrateur</p>}
       {!result && status.remaining === 0 ? (
         <p className="mt-6 flex gap-2 border-l-2 border-[#A0662B] bg-[#FBF1E4] px-4 py-3 text-sm" role="alert" data-testid="graded-no-attempts">
           <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden="true" /> Nombre maximal de tentatives atteint. Contactez votre responsable pédagogique pour un réexamen.

@@ -7,15 +7,17 @@ cd /app/backend
 PREPROD=$(grep '^DB_NAME=' .env | cut -d= -f2- | tr -d '"')
 [ "$DB" != "$PREPROD" ] || { echo "refusé : base de préproduction"; exit 1; }
 [[ "$DB" == casa_e2e* ]] || { echo "refusé : la base doit commencer par casa_e2e"; exit 1; }
-[ -s "$D/jwt_secret" ] || { echo "secret absent"; exit 1; }
+SECRET="${E2E_SECRET:-$D/jwt_secret}"
+[ -s "$SECRET" ] || { echo "secret absent"; exit 1; }
 export DB_NAME="$DB" CASA_TEST_DB="$DB" PUBLIC_APP_URL=http://localhost:8002 STORAGE_DISABLED=1 CORS_ORIGINS=http://localhost:3101
 export CERT_WATERMARK="CLONE E2E — sans valeur"
+export CASA_LEVEL_FROM_ASSESSMENT_MODULE_VERSION="${E2E_FLAGS:-0}" CASA_EXTRA_ATTEMPT_GRANTS="${E2E_FLAGS:-0}"
 export ADMIN_EMAIL= ADMIN_PASSWORD= LEARNER_EMAIL= LEARNER_PASSWORD= EMERGENT_LLM_KEY= TIGRIS_ACCESS_KEY_ID= TIGRIS_SECRET_ACCESS_KEY=
-if [ -s "$D/admin_password" ]; then
+if [ "${E2E_SEED_ADMIN:-0}" = "1" ] && [ -s "$D/admin_password" ]; then
   ADMIN_EMAIL=qa-e2e-admin@example.com
   ADMIN_PASSWORD="$(cat "$D/admin_password")"
 fi
-JWT_SECRET="$(cat "$D/jwt_secret")"
+JWT_SECRET="$(cat "$SECRET")"
 export JWT_SECRET
 umask 077
 nohup setsid python3 -m uvicorn server:app --host 127.0.0.1 --port 8002 > "$D/backend_8002.log" 2>&1 &

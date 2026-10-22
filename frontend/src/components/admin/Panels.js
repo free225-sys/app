@@ -201,6 +201,35 @@ const EvidenceRow = ({ a, onChange }) => {
   );
 };
 
+const AttemptGrants = () => {
+  const [grants, setGrants] = useState(null);
+  const [form, setForm] = useState({ email: "", assessment_id: "", reason: "" });
+  const [msg, setMsg] = useState("");
+  const load = () => http.get("/admin/attempt-grants").then((r) => setGrants(r.data)).catch(() => setGrants(null));
+  useEffect(() => { load(); }, []);
+  if (!grants) return null;
+  const submit = async (e) => {
+    e.preventDefault();
+    setMsg("");
+    try { await http.post("/admin/attempt-grants", form); setMsg("Tentative supplémentaire accordée (valable une fois)."); setForm({ email: "", assessment_id: "", reason: "" }); load(); }
+    catch (err) { setMsg(formatApiError(err)); }
+  };
+  const field = (k, label) => (
+    <label className="text-xs font-semibold">{label}
+      <input className={`${INPUT} mt-1`} value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} data-testid={`grant-${k}`} />
+    </label>
+  );
+  return (
+    <form onSubmit={submit} className="mb-6 border border-[#e5e9ef] bg-white p-4" data-testid="attempt-grants">
+      <p className="text-sm font-semibold">Accorder une tentative supplémentaire</p>
+      <div className="mt-3 grid gap-3 md:grid-cols-3">{field("email", "Email de l'apprenant")}{field("assessment_id", "Évaluation notée")}{field("reason", "Motif (obligatoire)")}</div>
+      <button type="submit" className={`${BTN_SMALL} mt-3`} disabled={form.reason.trim().length < 3 || !form.email || !form.assessment_id} data-testid="grant-submit">Accorder une tentative supplémentaire</button>
+      {msg && <p role="status" className="mt-2 text-xs" data-testid="grant-msg">{msg}</p>}
+      <p className="mt-2 text-xs text-[#627086]" data-testid="grant-count">{grants.length} octroi(s) enregistré(s), {grants.filter((g) => !g.consumed_at).length} non utilisé(s).</p>
+    </form>
+  );
+};
+
 export const Certificates = () => {
   const [awards, setAwards] = useState(null);
   const [atts, setAtts] = useState(null);
@@ -213,6 +242,7 @@ export const Certificates = () => {
   if (error) return <Notice kind="error">{formatApiError(error)}</Notice>;
   return (
     <section aria-labelledby="cert-title" className="space-y-10" data-testid="admin-page">
+      <AttemptGrants />
       <div>
         <h2 id="cert-title" className="text-2xl font-semibold tracking-tight">Certificats délivrés</h2>
         <p className="mt-2 text-sm text-[#627086]">Révoquer un certificat, ou invalider une preuve : les certificats qui en dépendent sont alors révoqués.</p>

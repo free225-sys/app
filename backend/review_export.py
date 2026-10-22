@@ -25,7 +25,8 @@ BASELINES = Path(__file__).parent / "data" / "review_baselines"
 MEMORY = Path(__file__).resolve().parents[1] / "memory"
 REPORTS = {"tableau-de-bord": ("RAPPORT_CORRECTION_TABLEAU_DE_BORD.md", "Correction du tableau de bord"),
            "test-isole-cert-doc-01": ("RAPPORT_TEST_ISOLE_CERT_DOC_01.md", "Tests isolés CERT-DOC-01"),
-           "rapprochement-m001-v2": ("RAPPROCHEMENT_M001_V2.md", "Rapprochement M-001 v2")}
+           "rapprochement-m001-v2": ("RAPPROCHEMENT_M001_V2.md", "Rapprochement M-001 v2"),
+           "test-isole-regles-2026-10": ("RAPPORT_TEST_ISOLE_REGLES_2026_10.md", "Test isolé — règles 2026-10 (niveau évalué, tentatives supplémentaires)")}
 ORDER = ["resource", "question", "assessment", "module", "course", "pathway"]
 STATUS = {"draft": "brouillon", "review": "en relecture"}
 registerFontFamily("Inter", normal="Inter", bold="Inter-SemiBold", italic="Inter", boldItalic="Inter-SemiBold")
@@ -133,6 +134,11 @@ def question_block(c: dict) -> List[str]:
     return lines
 
 
+async def evaluated_level(c: dict) -> str:
+    mv = await db.module_versions.find_one({"entity_id": c.get("module_id"), "version": c.get("module_version")}) or {}
+    return sorted(mv.get("levels") or ["?"], key=lambda x: LEVEL_ORDER.index(x) if x in LEVEL_ORDER else -1)[-1]
+
+
 async def scoring_block(items: List[dict]) -> List[str]:
     out = ["## Barème et règles"]
     for i in items:
@@ -162,6 +168,9 @@ async def scoring_block(items: List[dict]) -> List[str]:
                 + ", calculé uniquement pour une tentative réussie.",
                 f"- Niveau de l'acquis (comportement actuel) : niveau maximal de la version de {c.get('module_id')} publiée au moment où la tentative réussie est enregistrée "
                 f"({mod_label} : {level}). Ce niveau ne dépend pas de la version de l'évaluation passée, et la tentative n'enregistre pas la version du module (règle en cours de clarification).",
+                (f"- Niveau évalué : {await evaluated_level(c)} ({c.get('module_id')} v{c['module_version']}) — règle cible, active seulement avec l'interrupteur CASA_LEVEL_FROM_ASSESSMENT_MODULE_VERSION "
+                 "(désactivé en préproduction) : figé par la version de module de l'évaluation, sans hausse rétroactive." if c.get("module_version") else
+                 "- Niveau évalué : version de module non renseignée (publication refusée quand la règle cible est active)."),
                 "- Tentatives comptées par évaluation, toutes versions confondues : les tentatives déjà faites sur une version antérieure restent comptées et conservées ; acquis existants conservés sans recalcul."]
     for m in items:
         if m["type"] == "module":

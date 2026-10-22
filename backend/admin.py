@@ -12,7 +12,7 @@ from pydantic import ValidationError, BaseModel, EmailStr, Field
 from starlette.concurrency import run_in_threadpool
 
 from auth import ROLES, User, get_optional_user, hash_password, require_roles
-from core import BaseDocument, LEVEL_ORDER, db, log_change, norm, now_iso
+from core import BaseDocument, LEVEL_FLAG, LEVEL_ORDER, db, flag, log_change, norm, now_iso
 import projects
 
 router = APIRouter(prefix="/api", tags=["admin"])
@@ -292,6 +292,10 @@ async def publish_errors(t: str, eid: str, c: dict) -> List[str]:
             if await version_status("questions", q.get("question_id"), q.get("version")) != "published":
                 errs.append(f"Question non publiée : {q.get('question_id')} v{q.get('version')}.")
         errs += [f"Certification rendue impossible — {m['message']}" for m in await credential_regressions(eid, c)]
+        mv = c.get("module_version")
+        if flag(LEVEL_FLAG) and c.get("module_id") and (not isinstance(mv, int) or isinstance(mv, bool)
+                                                         or not await db.module_versions.find_one({"entity_id": c["module_id"], "version": mv})):
+            errs.append("Version de module évaluée (module_version) manquante ou inexistante : obligatoire pour publier une évaluation.")
     elif t == "course":
         if not c["module_ids"]:
             errs.append("Un cours doit contenir au moins un module.")

@@ -25,6 +25,15 @@ VERSION_STATUSES = ["draft", "review", "published", "retired"]
 PyObjectId = Annotated[str, BeforeValidator(lambda v: str(v) if isinstance(v, ObjectId) else v)]
 
 
+LEVEL_FLAG = "CASA_LEVEL_FROM_ASSESSMENT_MODULE_VERSION"
+GRANTS_FLAG = "CASA_EXTRA_ATTEMPT_GRANTS"
+
+
+def flag(name: str) -> bool:
+    """Behaviour switches: off unless the environment sets them to 1 (off on the shared preproduction instance)."""
+    return os.environ.get(name) == "1"
+
+
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 

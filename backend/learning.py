@@ -3,8 +3,8 @@ from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from auth import User, get_current_user, get_optional_user, require_learner
-from core import BaseDocument, LEVEL_ORDER, all_docs, db, now_iso, pinned, published, versions_by_key
+from auth import User, get_current_user, get_optional_user, require_learner, require_roles
+from core import BaseDocument, GRANTS_FLAG, LEVEL_FLAG, LEVEL_ORDER, all_docs, db, flag, log_change, now_iso, pinned, published, versions_by_key
 
 router = APIRouter(prefix="/api", tags=["learning"])
 
@@ -74,10 +74,36 @@ async def user_attempts(user_id: str, aid: Optional[str] = None) -> List[dict]:
     return [BaseDocument.from_mongo(d).out() for d in docs]
 
 
-def attempt_status(ent: dict, attempts: List[dict]) -> dict:
-    used = len(attempts)
-    return {"attempts_used": used, "max_attempts": ent["max_attempts"], "remaining": max(ent["max_attempts"] - used, 0),
-            "best_percent": max((a["percent"] for a in attempts), default=None), "passed": any(a["passed"] for a in attempts)}
+def attempt_status(ent: dict, attempts: List[dict], grants: Optional[dict] = None) -> dict:
+    used, extra = len(attempts), (grants or {}).get("total", 0)
+    out = {"attempts_used": used, "max_attempts": ent["max_attempts"] + extra, "remaining": max(ent["max_attempts"] + extra - used, 0),
+           "best_percent": max((a["percent"] for a in attempts), default=None), "passed": any(a["passed"] for a in attempts)}
+    if extra:
+        out.update(base_max_attempts=ent["max_attempts"], extra_granted=extra, extra_attempt_available=bool(grants["active"]))
+    return out
+
+
+async def attempt_grants(user_id: str, aid: str) -> dict:
+    """Extra attempts granted by the admin for one learner and one assessment (switch CASA_EXTRA_ATTEMPT_GRANTS)."""
+    if not flag(GRANTS_FLAG):
+        return {"total": 0, "active": None}
+    grants = await db.attempt_grants.find({"user_id": user_id, "assessment_id": aid}).sort("granted_at", 1).to_list(100)
+    return {"total": len(grants), "active": next((g for g in grants if not g.get("consumed_at")), None)}
+
+
+def max_level(levels: List[str]) -> str:
+    return sorted(levels, key=LEVEL_ORDER.index)[-1]
+
+
+async def evaluated_module_version(aid: str, version: int) -> int:
+    """Module version an assessment version was written for: its frozen module_version, or for versions published
+    before that link existed, the module version published at the assessment version's publication date (fallback)."""
+    ver = await db.assessment_versions.find_one({"entity_id": aid, "version": version})
+    if ver.get("module_version"):
+        return ver["module_version"]
+    mods = await db.module_versions.find({"entity_id": ver["module_id"], "published_at": {"$ne": None}}).sort("version", 1).to_list(100)
+    before = [m for m in mods if (m.get("published_at") or "") <= (ver.get("published_at") or "")]
+    return (before[-1] if before else mods[0])["version"]
 
 
 @router.get("/modules/{module_id}/assessments")
@@ -99,7 +125,7 @@ async def get_assessment(aid: str, user: Optional[User] = Depends(get_optional_u
     data = assessment_meta(ent, version, qs)
     data["questions"] = [public_question(q) for q in qs]
     if user and ent["kind"] == "graded":
-        data["status"] = attempt_status(ent, await user_attempts(user.id, aid))
+        data["status"] = attempt_status(ent, await user_attempts(user.id, aid), await attempt_grants(user.id, aid))
     return data
 
 
@@ -138,7 +164,8 @@ async def module_level(module_id: str) -> str:
 
 
 async def record_attainments(user: User, attempt: dict):
-    level = await module_level(attempt["module_id"])
+    level = attempt.get("level_evaluated") or await module_level(attempt["module_id"])
+    frozen = {"module_version": attempt["module_version"], "level_evaluated": attempt["level_evaluated"]} if "level_evaluated" in attempt else {}
     for comp in attempt["per_competency"]:
         if comp["percent"] < ATTAIN_THRESHOLD:
             continue
@@ -150,7 +177,7 @@ async def record_attainments(user: User, attempt: dict):
             **key, "level": level, "score_percent": comp["percent"], "acquired_at": attempt["created_at"], "status": "valid",
             "evidence": {"type": "graded_attempt", "attempt_id": attempt["id"], "assessment_id": attempt["assessment_id"],
                          "assessment_version": attempt["assessment_version"], "attempt_number": attempt["attempt_number"],
-                         "attempt_percent": attempt["percent"]}}}, upsert=True)
+                         "attempt_percent": attempt["percent"], **frozen}}}, upsert=True)
 
 
 @router.post("/assessments/{aid}/attempts")
@@ -159,22 +186,72 @@ async def submit_attempt(aid: str, body: AttemptIn, user: User = Depends(require
     if ent["kind"] != "graded":
         raise HTTPException(400, "Seules les évaluations notées acceptent des tentatives.")
     previous = await user_attempts(user.id, aid)
-    if len(previous) >= ent["max_attempts"]:
-        raise HTTPException(403, f"Nombre maximal de tentatives atteint ({ent['max_attempts']}).")
+    grants = await attempt_grants(user.id, aid)
+    if len(previous) >= ent["max_attempts"] + grants["total"]:
+        extra = f" + {grants['total']} accordée(s)" if grants["total"] else ""
+        raise HTTPException(403, f"Nombre maximal de tentatives atteint ({ent['max_attempts']}{extra}).")
     correct_count, per_comp, details = score_attempt(qs, body.answers)
     percent = round(correct_count / len(qs), 4)
     attempt = {"user_id": user.id, "assessment_id": aid, "assessment_version": version, "module_id": ent["module_id"],
                "kind": "graded", "attempt_number": len(previous) + 1, "answers": body.answers, "score": correct_count,
                "max_score": len(qs), "percent": percent, "passed": percent >= ent["pass_threshold"],
                "per_competency": per_comp, "created_at": now_iso()}
+    if flag(LEVEL_FLAG):
+        mv = await evaluated_module_version(aid, version)
+        mdoc = await db.module_versions.find_one({"entity_id": ent["module_id"], "version": mv})
+        attempt.update(module_version=mv, level_evaluated=max_level(mdoc["levels"]))
     res = await db.attempts.insert_one(attempt)
     attempt["id"] = str(res.inserted_id)
     attempt.pop("_id", None)
+    if len(previous) >= ent["max_attempts"]:
+        await db.attempt_grants.update_one({"_id": grants["active"]["_id"]}, {"$set": {"consumed_at": attempt["created_at"], "attempt_id": attempt["id"]}})
     if attempt["passed"]:
         await record_attainments(user, attempt)
     module = await module_progress(user.id, ent["module_id"])
-    status = attempt_status(ent, previous + [attempt])
+    status = attempt_status(ent, previous + [attempt], await attempt_grants(user.id, aid))
     return {"attempt": attempt, "details": details, "status": status, "module_progress": module}
+
+
+def grants_enabled():
+    if not flag(GRANTS_FLAG):
+        raise HTTPException(404, "Not Found")
+
+
+class GrantIn(BaseModel):
+    email: str
+    assessment_id: str
+    reason: str = Field(min_length=3)
+
+
+def grant_out(g: dict) -> dict:
+    return {"id": str(g["_id"]), **{k: g.get(k) for k in ("user_id", "user_email", "assessment_id", "reason", "granted_by", "granted_at", "consumed_at", "attempt_id")}}
+
+
+@router.get("/admin/attempt-grants")
+async def list_attempt_grants(_: None = Depends(grants_enabled), user: User = Depends(require_roles("admin"))):
+    return [grant_out(g) for g in await db.attempt_grants.find().sort("granted_at", -1).to_list(500)]
+
+
+@router.post("/admin/attempt-grants")
+async def grant_attempt(body: GrantIn, _: None = Depends(grants_enabled), user: User = Depends(require_roles("admin"))):
+    learner = await db.users.find_one({"email": body.email.strip().lower()})
+    if not learner:
+        raise HTTPException(404, "Apprenant introuvable")
+    if learner.get("role") != "learner" or not learner.get("active", True):
+        raise HTTPException(400, "Seul un apprenant actif peut recevoir une tentative supplémentaire.")
+    ent = await db.assessments.find_one({"_id": body.assessment_id})
+    if not ent or ent.get("kind") != "graded":
+        raise HTTPException(404, "Évaluation notée introuvable")
+    uid = str(learner["_id"])
+    if await db.attempts.find_one({"user_id": uid, "assessment_id": body.assessment_id, "passed": True}):
+        raise HTTPException(409, "L'apprenant a déjà réussi cette évaluation : aucune tentative supplémentaire ne peut être accordée.")
+    if await db.attempt_grants.find_one({"user_id": uid, "assessment_id": body.assessment_id, "consumed_at": None}):
+        raise HTTPException(409, "Une tentative supplémentaire est déjà accordée et pas encore utilisée.")
+    g = {"user_id": uid, "user_email": learner["email"], "assessment_id": body.assessment_id, "reason": body.reason.strip(),
+         "granted_by": {"id": user.id, "email": user.email}, "granted_at": now_iso(), "consumed_at": None, "attempt_id": None}
+    g["_id"] = (await db.attempt_grants.insert_one(g)).inserted_id
+    await log_change(user, "attempt_grant", f"{body.assessment_id}:{learner['email']}", "grant", body.reason.strip())
+    return grant_out(g)
 
 
 @router.get("/assessments/{aid}/attempts")

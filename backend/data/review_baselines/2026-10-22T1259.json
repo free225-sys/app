@@ -1,0 +1,720 @@
+{
+ "captured_at": "2026-10-22T13:45Z",
+ "items": [
+  {
+   "content": {
+    "duration_min": 12,
+    "module_id": "M-001",
+    "order": 2,
+    "sections": [
+     {
+      "body": "Le modèle ne lit pas des mots mais des **tokens**, c'est-à-dire des fragments de texte. « commercialisation » peut ainsi être découpé en plusieurs morceaux.\n\n- La longueur d'un texte se mesure en tokens.\n- Les coûts et la fenêtre de contexte s'expriment aussi en tokens.",
+      "heading": "Les tokens"
+     },
+     {
+      "body": "L'**inférence** est le calcul par lequel le modèle, à partir des tokens reçus, produit une distribution de probabilités sur le token suivant. Le token retenu est ensuite choisi selon les paramètres de génération, comme la température : ce n'est pas toujours le plus probable. Ce calcul mobilise les paramètres du modèle et des ressources matérielles (CPU ou GPU).",
+      "heading": "L'inférence"
+     }
+    ],
+    "title": "Notions essentielles : tokens et inférence",
+    "type": "Texte"
+   },
+   "entity_id": "A-002",
+   "type": "resource",
+   "version": 2
+  },
+  {
+   "content": {
+    "competencies": [
+     {
+      "competency_id": "K-001",
+      "weight": 2
+     }
+    ],
+    "correct": [
+     "a"
+    ],
+    "explanation": "Dans le schéma simplifié de M-001, une réponse résulte d'une chaîne de traitements. La recherche, quand elle existe, précède l'inférence ; les contrôles précèdent la restitution. Ce schéma est un modèle pédagogique simplifié : un système réel peut regrouper, répéter ou réorganiser certaines étapes.",
+    "module_id": "M-001",
+    "options": [
+     {
+      "id": "a",
+      "text": "Interface, préparation, recherche éventuelle, inférence, génération, contrôles, restitution"
+     },
+     {
+      "id": "b",
+      "text": "Recherche, interface, génération, inférence, préparation, restitution, contrôles"
+     },
+     {
+      "id": "c",
+      "text": "Inférence, interface, préparation, contrôles, génération, recherche, restitution"
+     }
+    ],
+    "prompt": "Selon le schéma simplifié présenté dans M-001, dans quel ordre s'enchaînent les traitements qui produisent une réponse d'assistant ?",
+    "sources": [
+     {
+      "quote": "Une réponse d'assistant résulte d'une **chaîne de traitements** : interface, préparation, recherche éventuelle, inférence, génération, contrôles et restitution.",
+      "resource_id": "A-001"
+     }
+    ],
+    "type": "single"
+   },
+   "entity_id": "Q-M-001-G1",
+   "type": "question",
+   "version": 1
+  },
+  {
+   "content": {
+    "competencies": [
+     {
+      "competency_id": "K-001",
+      "weight": 1
+     }
+    ],
+    "correct": [
+     "b"
+    ],
+    "explanation": "Les extraits du Journal officiel sont retrouvés après la préparation de la demande, puis transmis au modèle avant qu'il ne calcule sa réponse.",
+    "module_id": "M-001",
+    "options": [
+     {
+      "id": "a",
+      "text": "Avant la formulation de la demande"
+     },
+     {
+      "id": "b",
+      "text": "Après la préparation de la demande et avant l'inférence du modèle"
+     },
+     {
+      "id": "c",
+      "text": "Après la restitution, pour archiver la réponse"
+     }
+    ],
+    "prompt": "Dans la démonstration (« Quels textes régissent la commercialisation du café et du cacao ? »), à quel moment intervient la recherche documentaire ?",
+    "sources": [
+     {
+      "quote": "Ouvrez la **démonstration interactive** et suivez la question « Quels textes régissent la commercialisation du café et du cacao ? » sur les sept étapes.",
+      "resource_id": "A-001"
+     },
+     {
+      "quote": "Repérez l'étape où intervient la recherche documentaire.",
+      "resource_id": "A-001"
+     },
+     {
+      "quote": "Une réponse d'assistant résulte d'une **chaîne de traitements** : interface, préparation, recherche éventuelle, inférence, génération, contrôles et restitution.",
+      "resource_id": "A-001"
+     }
+    ],
+    "type": "single"
+   },
+   "entity_id": "Q-M-001-G2",
+   "type": "question",
+   "version": 1
+  },
+  {
+   "content": {
+    "competencies": [
+     {
+      "competency_id": "K-001",
+      "weight": 2
+     }
+    ],
+    "correct": [
+     "a",
+     "b",
+     "c"
+    ],
+    "explanation": "La mesure de la longueur d'un texte et la capacité de la fenêtre de contexte s'expriment en tokens, quel que soit l'assistant. La facturation en tokens dépend en revanche du mode d'accès : elle s'applique ici parce que l'API est facturée à l'usage ; un autre mode d'accès, comme un abonnement, peut être facturé autrement.",
+    "module_id": "M-001",
+    "options": [
+     {
+      "id": "a",
+      "text": "La longueur du texte se mesure en tokens, et la fenêtre de contexte de l'assistant est limitée en tokens"
+     },
+     {
+      "id": "b",
+      "text": "Avec cette API facturée à l'usage, le coût dépend du nombre de tokens traités"
+     },
+     {
+      "id": "c",
+      "text": "Un mot long peut être découpé en plusieurs tokens, ce qui allonge la mesure du texte"
+     },
+     {
+      "id": "d",
+      "text": "L'assistant compte les pages du document et refuse au-delà d'un nombre de pages"
+     }
+    ],
+    "prompt": "Une juriste utilise un assistant connecté à une API de modèle facturée à l'usage. Elle y colle l'intégralité d'un long recueil de textes. L'assistant indique qu'il ne peut pas tout traiter en une fois, et le coût d'utilisation augmente nettement. Quelles explications sont correctes ? (plusieurs réponses)",
+    "sources": [
+     {
+      "quote": "Le modèle ne lit pas des mots mais des **tokens**, c'est-à-dire des fragments de texte. « commercialisation » peut ainsi être découpé en plusieurs morceaux.",
+      "resource_id": "A-002"
+     },
+     {
+      "quote": "La longueur d'un texte se mesure en tokens.",
+      "resource_id": "A-002"
+     },
+     {
+      "quote": "Les coûts et la fenêtre de contexte s'expriment aussi en tokens.",
+      "resource_id": "A-002"
+     }
+    ],
+    "type": "multiple"
+   },
+   "entity_id": "Q-M-001-G3",
+   "type": "question",
+   "version": 1
+  },
+  {
+   "content": {
+    "competencies": [
+     {
+      "competency_id": "K-001",
+      "weight": 2
+     }
+    ],
+    "correct": [
+     "b"
+    ],
+    "explanation": "La recherche retrouve des extraits existants ; elle ne rédige pas. Le texte est produit à l'inférence et à la génération : à chaque pas, le modèle calcule une distribution de probabilités sur le token suivant, puis un token est choisi selon les paramètres de génération, comme la température, et pas forcément le plus probable. Le modèle peut ainsi produire une formulation plausible, par exemple une référence, sans qu'elle soit vérifiée ni présente dans les sources. C'est le rôle des contrôles de détecter qu'une citation n'est rattachée à aucun extrait.",
+    "module_id": "M-001",
+    "options": [
+     {
+      "id": "a",
+      "text": "La recherche documentaire, qui aurait créé le décret"
+     },
+     {
+      "id": "b",
+      "text": "L'inférence et la génération : le modèle a produit, token par token, une formulation plausible à partir d'une distribution de probabilités, sans s'appuyer sur un extrait retrouvé"
+     },
+     {
+      "id": "c",
+      "text": "La formulation de la demande par l'utilisateur"
+     },
+     {
+      "id": "d",
+      "text": "La restitution, qui s'est contentée de mettre en forme la réponse"
+     }
+    ],
+    "prompt": "Cas d'application fictif : dans le cas CASA, l'assistant cite un « décret n° 2019-000 » — référence fictive, inventée pour cet exercice — qui n'existe pas dans la base documentaire. Aucun extrait correspondant n'est affiché, alors que les extraits retrouvés étaient bien pertinents. Quelle étape a produit ce passage erroné ?",
+    "source_note": "Citation A-002 alignée sur la version 2 de la ressource, en relecture (non publiée).",
+    "sources": [
+     {
+      "quote": "Identifiez l'étape où le modèle produit le texte.",
+      "resource_id": "A-001"
+     },
+     {
+      "quote": "L'**inférence** est le calcul par lequel le modèle, à partir des tokens reçus, produit une distribution de probabilités sur le token suivant. Le token retenu est ensuite choisi selon les paramètres de génération, comme la température : ce n'est pas toujours le plus probable. Ce calcul mobilise les paramètres du modèle et des ressources matérielles (CPU ou GPU).",
+      "resource_id": "A-002"
+     }
+    ],
+    "type": "single"
+   },
+   "entity_id": "Q-M-001-G4",
+   "type": "question",
+   "version": 1
+  },
+  {
+   "content": {
+    "competencies": [
+     {
+      "competency_id": "K-001",
+      "weight": 1
+     }
+    ],
+    "correct": [
+     "b"
+    ],
+    "explanation": "Le découpage en tokens relève de la préparation ; le calcul des probabilités du token suivant et l'usage des paramètres sur CPU ou GPU relèvent de l'inférence. Seule la recherche documentaire va chercher le passage pertinent dans le document de l'entreprise. La question ne porte que sur l'étape du traitement, pas sur le contenu des règles de congé.",
+    "module_id": "M-001",
+    "options": [
+     {
+      "id": "a",
+      "text": "Découper la question du salarié en tokens"
+     },
+     {
+      "id": "b",
+      "text": "Retrouver dans le règlement intérieur le passage qui traite des congés pour événement familial"
+     },
+     {
+      "id": "c",
+      "text": "Calculer, token après token, une distribution de probabilités sur la suite du texte"
+     },
+     {
+      "id": "d",
+      "text": "Mobiliser les paramètres du modèle sur des processeurs CPU ou GPU"
+     }
+    ],
+    "prompt": "Cas d'application fictif : un assistant RH répond aux salariés à partir du règlement intérieur d'une entreprise. Un salarié lui demande quelles sont les modalités du congé pour événement familial. Laquelle de ces opérations relève de la recherche documentaire, et non de la préparation ou de l'inférence ?",
+    "source_note": "Scénario : exemple d'application inédit (assistant RH fictif), absent des ressources de M-001. Les citations justifient les notions évaluées (préparation, recherche documentaire, inférence), pas le scénario. Citation A-002 alignée sur la version 2 de la ressource, en relecture (non publiée).",
+    "sources": [
+     {
+      "quote": "Repérez l'étape où intervient la recherche documentaire.",
+      "resource_id": "A-001"
+     },
+     {
+      "quote": "Une réponse d'assistant résulte d'une **chaîne de traitements** : interface, préparation, recherche éventuelle, inférence, génération, contrôles et restitution.",
+      "resource_id": "A-001"
+     },
+     {
+      "quote": "Le modèle ne lit pas des mots mais des **tokens**, c'est-à-dire des fragments de texte.",
+      "resource_id": "A-002"
+     },
+     {
+      "quote": "L'**inférence** est le calcul par lequel le modèle, à partir des tokens reçus, produit une distribution de probabilités sur le token suivant. Le token retenu est ensuite choisi selon les paramètres de génération, comme la température : ce n'est pas toujours le plus probable. Ce calcul mobilise les paramètres du modèle et des ressources matérielles (CPU ou GPU).",
+      "resource_id": "A-002"
+     }
+    ],
+    "type": "single"
+   },
+   "entity_id": "Q-M-001-G5",
+   "type": "question",
+   "version": 1
+  },
+  {
+   "content": {
+    "competencies": [
+     {
+      "competency_id": "K-003",
+      "weight": 2
+     }
+    ],
+    "correct": [
+     "b"
+    ],
+    "explanation": "La fluidité ne garantit pas la vérité : il faut relier les affirmations aux sources.",
+    "module_id": "M-003",
+    "options": [
+     {
+      "id": "a",
+      "text": "Oui"
+     },
+     {
+      "id": "b",
+      "text": "Non"
+     }
+    ],
+    "prompt": "Une réponse fluide et assurée est-elle une preuve d'exactitude ?",
+    "type": "single"
+   },
+   "entity_id": "Q-M-003-G1",
+   "type": "question",
+   "version": 2
+  },
+  {
+   "content": {
+    "competencies": [
+     {
+      "competency_id": "K-003",
+      "weight": 2
+     }
+    ],
+    "correct": [
+     "a",
+     "b",
+     "d"
+    ],
+    "explanation": "La référence complète et la concordance du contenu sont nécessaires.",
+    "module_id": "M-003",
+    "options": [
+     {
+      "id": "a",
+      "text": "Le numéro et la date du Journal"
+     },
+     {
+      "id": "b",
+      "text": "L'article cité"
+     },
+     {
+      "id": "c",
+      "text": "La couleur de l'interface"
+     },
+     {
+      "id": "d",
+      "text": "La concordance entre l'extrait et l'affirmation"
+     }
+    ],
+    "prompt": "Quels éléments vérifier pour une citation du Journal officiel ? (plusieurs réponses)",
+    "type": "multiple"
+   },
+   "entity_id": "Q-M-003-G3",
+   "type": "question",
+   "version": 2
+  },
+  {
+   "content": {
+    "competencies": [
+     {
+      "competency_id": "K-003",
+      "weight": 2
+     }
+    ],
+    "correct": [
+     "a"
+    ],
+    "explanation": "L'étape 6 (Contrôles) vérifie citations, droits et règles.",
+    "module_id": "M-003",
+    "options": [
+     {
+      "id": "a",
+      "text": "Contrôles"
+     },
+     {
+      "id": "b",
+      "text": "Demande"
+     },
+     {
+      "id": "c",
+      "text": "Tokenisation"
+     }
+    ],
+    "prompt": "À quelle étape les citations sont-elles vérifiées dans le scénario CASA ?",
+    "type": "single"
+   },
+   "entity_id": "Q-M-003-G5",
+   "type": "question",
+   "version": 2
+  },
+  {
+   "content": {
+    "competencies": [
+     {
+      "competency_id": "K-001",
+      "weight": 1
+     }
+    ],
+    "correct": [
+     "b"
+    ],
+    "explanation": "L'inférence mobilise les paramètres du modèle pour calculer une distribution de probabilités sur le token suivant ; le token retenu dépend ensuite des paramètres de génération.",
+    "module_id": "M-001",
+    "options": [
+     {
+      "id": "a",
+      "text": "Restitution"
+     },
+     {
+      "id": "b",
+      "text": "Inférence"
+     },
+     {
+      "id": "c",
+      "text": "Demande"
+     }
+    ],
+    "prompt": "À quelle étape le modèle calcule-t-il la distribution de probabilités du token suivant ?",
+    "type": "single"
+   },
+   "entity_id": "Q-M-001-F2",
+   "type": "question",
+   "version": 2
+  },
+  {
+   "content": {
+    "catalog_type": "graded_quiz",
+    "code": "A-M-001-G",
+    "kind": "graded",
+    "max_attempts": 3,
+    "module_id": "M-001",
+    "pass_threshold": 0.8,
+    "questions": [
+     {
+      "question_id": "Q-M-001-G1",
+      "version": 1
+     },
+     {
+      "question_id": "Q-M-001-G2",
+      "version": 1
+     },
+     {
+      "question_id": "Q-M-001-G3",
+      "version": 1
+     },
+     {
+      "question_id": "Q-M-001-G4",
+      "version": 1
+     },
+     {
+      "question_id": "Q-M-001-G5",
+      "version": 1
+     }
+    ],
+    "title": "Évaluation notée — M-001"
+   },
+   "entity_id": "A-M-001-G",
+   "type": "assessment",
+   "version": 1
+  },
+  {
+   "content": {
+    "catalog_id": "Q-003",
+    "catalog_type": "graded_quiz",
+    "code": "A-M-003-G",
+    "kind": "graded",
+    "max_attempts": 3,
+    "module_id": "M-003",
+    "pass_threshold": 0.8,
+    "questions": [
+     {
+      "question_id": "Q-M-003-G1",
+      "version": 2
+     },
+     {
+      "question_id": "Q-M-003-G2",
+      "version": 1
+     },
+     {
+      "question_id": "Q-M-003-G3",
+      "version": 2
+     },
+     {
+      "question_id": "Q-M-003-G4",
+      "version": 1
+     },
+     {
+      "question_id": "Q-M-003-G5",
+      "version": 2
+     }
+    ],
+    "title": "Évaluation notée — M-003"
+   },
+   "entity_id": "A-M-003-G",
+   "type": "assessment",
+   "version": 2
+  },
+  {
+   "content": {
+    "catalog_id": "Q-001",
+    "catalog_type": "practice_quiz",
+    "code": "A-M-001-F",
+    "kind": "formative",
+    "max_attempts": null,
+    "module_id": "M-001",
+    "pass_threshold": null,
+    "questions": [
+     {
+      "question_id": "Q-M-001-F1",
+      "version": 1
+     },
+     {
+      "question_id": "Q-M-001-F2",
+      "version": 2
+     },
+     {
+      "question_id": "Q-M-001-F3",
+      "version": 1
+     }
+    ],
+    "title": "Quiz formatif — M-001"
+   },
+   "entity_id": "A-M-001-F",
+   "type": "assessment",
+   "version": 2
+  },
+  {
+   "content": {
+    "assessment_ids": [
+     "A-M-001-F",
+     "A-M-001-G"
+    ],
+    "code": "M-001",
+    "competency_ids": [
+     "K-001",
+     "comp-expliquer"
+    ],
+    "completion_rule": "resources_and_graded",
+    "duration_hours": 2,
+    "layer_ids": [
+     "layer-application",
+     "layer-donnees",
+     "layer-modeles"
+    ],
+    "levels": [
+     "L0",
+     "L1"
+    ],
+    "objectives": [],
+    "prerequisite_module_ids": [],
+    "prerequisites": [
+     "Aucun prérequis"
+    ],
+    "resource_ids": [
+     "A-001",
+     "A-002"
+    ],
+    "stage_ids": [
+     "stage-01",
+     "stage-02",
+     "stage-04"
+    ],
+    "summary": "Comprendre le chemin d'une requête, de la question saisie à l'inférence du modèle.",
+    "title": "De la requête au modèle"
+   },
+   "entity_id": "M-001",
+   "type": "module",
+   "version": 2
+  },
+  {
+   "content": {
+    "code": "CO-001",
+    "duration_hours": 4,
+    "levels": [
+     "L0",
+     "L1"
+    ],
+    "module_ids": [
+     "M-001",
+     "M-003"
+    ],
+    "module_pins": {
+     "M-001": 2,
+     "M-003": 1
+    },
+    "optional_module_ids": [],
+    "profile_id": "profile-decouvrir",
+    "summary": "Comprendre le chemin d'une requête documentaire et apprendre à fiabiliser la réponse obtenue.",
+    "title": "Comprendre une IA documentaire"
+   },
+   "entity_id": "CO-001",
+   "type": "course",
+   "version": 2
+  },
+  {
+   "content": {
+    "code": "CO-002",
+    "duration_hours": 6,
+    "levels": [
+     "L0",
+     "L1",
+     "L2"
+    ],
+    "module_ids": [
+     "M-001",
+     "M-002",
+     "M-003"
+    ],
+    "module_pins": {
+     "M-001": 2,
+     "M-002": 1,
+     "M-003": 1
+    },
+    "optional_module_ids": [],
+    "profile_id": "profile-concevoir",
+    "summary": "De la requête au modèle, concevoir la recherche documentaire puis évaluer les citations produites.",
+    "title": "Construire et évaluer un RAG"
+   },
+   "entity_id": "CO-002",
+   "type": "course",
+   "version": 2
+  },
+  {
+   "content": {
+    "code": "P-001",
+    "course_ids": [
+     "CO-001"
+    ],
+    "levels": [
+     "L0",
+     "L1"
+    ],
+    "pathway_courses": [
+     {
+      "bridge": {
+       "accepted_evidence_types": [
+        "graded_attempt",
+        "project"
+       ],
+       "module_recognition": "same_module_version"
+      },
+      "course_id": "CO-001",
+      "course_version": 2,
+      "group": "mandatory"
+     }
+    ],
+    "profile_ids": [
+     "profile-decouvrir",
+     "profile-utiliser"
+    ],
+    "summary": "Un parcours court pour comprendre une IA documentaire et vérifier ses réponses.",
+    "target_competencies": [
+     {
+      "competency_id": "K-001",
+      "level": "L1"
+     },
+     {
+      "competency_id": "K-003",
+      "level": "L1"
+     }
+    ],
+    "title": "Découverte / utilisateur"
+   },
+   "entity_id": "P-001",
+   "type": "pathway",
+   "version": 2
+  },
+  {
+   "content": {
+    "code": "P-002",
+    "course_ids": [
+     "CO-001",
+     "CO-002"
+    ],
+    "levels": [
+     "L0",
+     "L1",
+     "L2"
+    ],
+    "pathway_courses": [
+     {
+      "bridge": {
+       "accepted_evidence_types": [
+        "graded_attempt",
+        "project"
+       ],
+       "module_recognition": "same_module_version"
+      },
+      "course_id": "CO-001",
+      "course_version": 2,
+      "group": "mandatory"
+     },
+     {
+      "bridge": {
+       "accepted_evidence_types": [
+        "graded_attempt",
+        "project"
+       ],
+       "module_recognition": "same_module_version"
+      },
+      "course_id": "CO-002",
+      "course_version": 2,
+      "group": "mandatory"
+     }
+    ],
+    "profile_ids": [
+     "profile-concevoir"
+    ],
+    "summary": "Comprendre, concevoir puis évaluer une chaîne de recherche augmentée.",
+    "target_competencies": [
+     {
+      "competency_id": "K-001",
+      "level": "L1"
+     },
+     {
+      "competency_id": "K-002",
+      "level": "L2"
+     },
+     {
+      "competency_id": "K-003",
+      "level": "L1"
+     }
+    ],
+    "title": "Consultant / concepteur"
+   },
+   "entity_id": "P-002",
+   "type": "pathway",
+   "version": 2
+  }
+ ],
+ "label": "export précédent (22/10 12:59)",
+ "note": "Aucune modification des brouillons entre l'export de 12:59 et cette capture."
+}
