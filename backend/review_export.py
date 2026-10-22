@@ -3,7 +3,7 @@ import json
 import re
 from datetime import datetime, timezone
 from io import BytesIO
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
@@ -14,9 +14,9 @@ from reportlab.pdfbase.pdfmetrics import registerFontFamily
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 import certificates  # noqa: F401  (registers Inter fonts)
-from admin import TYPES, content_of
+from admin import TYPES, content_of, credential_regressions
 from auth import User, require_roles
-from core import db
+from core import LEVEL_ORDER, db
 from learning import ATTAIN_THRESHOLD
 
 router = APIRouter(prefix="/api")
@@ -52,7 +52,9 @@ async def collect() -> List[dict]:
         async for v in db[TYPES[t]["versions"]].find({"status": {"$in": ["draft", "review"]}}).sort("entity_id", 1):
             pv = await published_version(t, v["entity_id"])
             prev = await db[TYPES[t]["versions"]].find_one({"entity_id": v["entity_id"], "version": pv}) if pv else None
-            items.append({"type": t, "doc": v, "content": content_of(v), "published": pv, "prev": content_of(prev) if prev else None})
+            c = content_of(v)
+            items.append({"type": t, "doc": v, "content": c, "published": pv, "prev": content_of(prev) if prev else None,
+                          "carried": await carried(c) if t == "assessment" else set()})
     pending = {(i["type"], i["doc"]["entity_id"]): i["doc"]["version"] for i in items}
     for i in items:
         deps, before = [], []
@@ -63,8 +65,48 @@ async def collect() -> List[dict]:
             deps.append(f"{TYPES[rt]['label'] if rt in TYPES else rt} {label} (publiée : {pub_txt})")
             if (rt, rid) in pending and (rv is None or rv == pending[(rt, rid)]) and (pub is None or (rv or 0) > pub):
                 before.append(f"{rid} v{pending[(rt, rid)]}")
+                i.setdefault("before_keys", set()).add((rt, rid))
         i["deps"], i["before"] = deps, before
-    return items
+    for i in items:
+        i["cert"] = await credential_regressions(i["doc"]["entity_id"], i["content"]) if i["type"] == "assessment" else []
+        for reg in i["cert"]:
+            reg["fix"] = cert_providers(items, i, reg["rule"])
+            for j in reg["fix"]:
+                i["before"].append(f"{j['doc']['entity_id']} v{j['doc']['version']} (certification {reg['credential_id']})")
+                i.setdefault("before_keys", set()).add((j["type"], j["doc"]["entity_id"]))
+    return topo(items)
+
+
+async def carried(c: dict) -> set:
+    comps = set()
+    for q in c.get("questions", []):
+        comps |= {w["competency_id"] for w in (await db.questions.find_one({"_id": f"{q['question_id']}@{q.get('version')}"}) or {}).get("competencies", []) if w.get("weight", 0) > 0}
+    return comps
+
+
+def cert_providers(items: List[dict], target: dict, rule: dict) -> List[dict]:
+    """Pending assessment (and its pending module raising the level) that would restore a credential rule."""
+    need = LEVEL_ORDER.index(rule["min_level"])
+    out = []
+    for j in items:
+        if j is target or j["type"] != "assessment" or rule["competency_id"] not in j["carried"]:
+            continue
+        mod = next((m for m in items if m["type"] == "module" and m["doc"]["entity_id"] == j["content"].get("module_id")), None)
+        if mod and max((LEVEL_ORDER.index(lv) for lv in mod["content"].get("levels", [])), default=-1) >= need:
+            out += [j, mod]
+    return out
+
+
+def topo(items: List[dict]) -> List[dict]:
+    key = lambda i: (i["type"], i["doc"]["entity_id"])  # noqa: E731
+    keys = {key(i) for i in items}
+    done, out = set(), []
+    while len(out) < len(items):
+        nxt = next((i for i in items if key(i) not in done and not ((i.get("before_keys") or set()) & keys) - done), None)
+        nxt = nxt or next(i for i in items if key(i) not in done)
+        done.add(key(nxt))
+        out.append(nxt)
+    return out
 
 
 def last_revision(doc: dict) -> str:
@@ -97,13 +139,19 @@ async def scoring_block(items: List[dict]) -> List[str]:
             for w in qd.get("competencies", []):
                 weights[w["competency_id"]] = weights.get(w["competency_id"], 0) + w["weight"]
         mod = next((m for m in items if m["type"] == "module" and m["doc"]["entity_id"] == c.get("module_id")), None)
-        level = (mod["content"].get("levels") or ["?"])[-1] if mod else "niveau de la version publiée du module"
+        if mod:
+            level, mod_label = (mod["content"].get("levels") or ["?"])[-1], f"{c.get('module_id')} v{mod['doc']['version']}"
+        else:
+            pv = await published_version("module", c.get("module_id"))
+            mv = await db.module_versions.find_one({"entity_id": c.get("module_id"), "version": pv}) or {}
+            level, mod_label = (sorted(mv.get("levels") or ["?"], key=lambda x: LEVEL_ORDER.index(x) if x in LEVEL_ORDER else -1))[-1], f"{c.get('module_id')} v{pv} publiée"
         out += [f"### {i['doc']['entity_id']} v{i['doc']['version']}",
                 f"- Seuil de réussite : {round(c.get('pass_threshold', 0) * 100)} % du nombre de questions ({len(c.get('questions', []))} questions) ; tentatives : {c.get('max_attempts')}.",
                 "- Correction tout-ou-rien par question, choix multiples compris : une question n'est juste que si l'ensemble coché est exactement l'ensemble attendu.",
                 "- Acquis : " + "; ".join(f"{k} pondéré sur {v} points, acquis si ≥ {round(ATTAIN_THRESHOLD * 100)} %" for k, v in weights.items())
                 + ", calculé uniquement pour une tentative réussie.",
-                f"- Niveau de l'acquis : niveau maximal du module publié au moment de la réussite ({c.get('module_id')} v{mod['doc']['version'] if mod else '?'} : {level})."]
+                f"- Niveau de l'acquis : niveau maximal du module publié au moment de la réussite ({mod_label} : {level}).",
+                "- Tentatives comptées par évaluation, toutes versions confondues : les tentatives déjà faites sur une version antérieure restent comptées et conservées ; acquis existants conservés sans recalcul."]
     for m in items:
         if m["type"] == "module":
             rule = m["content"].get("completion_rule")
@@ -117,6 +165,16 @@ async def build_markdown() -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     md = ["# Document de relecture — préproduction — aucune publication", "", f"Généré le {now} depuis la base, en lecture seule. {len(items)} élément(s) en brouillon ou en relecture.", ""]
     md += ["## Ordre de publication"] + [f"{n}. {TYPES[i['type']]['label']} {i['doc']['entity_id']} v{i['doc']['version']}" for n, i in enumerate(items, 1)] + [""]
+    crit = [i for i in items if i["cert"]]
+    if crit:
+        md += ["## Dépendances critiques (certifications)"]
+        for i in crit:
+            for reg in i["cert"]:
+                fix = ", ".join(f"{j['doc']['entity_id']} v{j['doc']['version']}" for j in reg["fix"]) or "aucun brouillon ne la rétablit"
+                md.append(f"- **{i['doc']['entity_id']} v{i['doc']['version']}** publié avant {fix} rendrait **{reg['credential_id']}** impossible à obtenir "
+                          f"(règle {reg['rule']['id']} : {reg['rule']['competency_id']} niveau {reg['rule']['min_level']}). "
+                          "Le contrôle de publication refuse cette publication tant que la règle ne serait plus atteignable.")
+        md.append("")
     md += await scoring_block(items) + [""]
     for i in items:
         d, c, t = i["doc"], i["content"], i["type"]

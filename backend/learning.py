@@ -376,9 +376,9 @@ async def dashboard(user: User = Depends(require_learner)):
         recos.append({"kind": "module", "module_id": "M01", "label": "M01 — Comprendre les usages, capacités et limites", "reason": "Module gratuit recommandé pour commencer"})
     if not diag:
         recos.append({"kind": "diagnostic", "label": "Passer le test de positionnement", "reason": "Huit questions pour identifier votre point d'entrée."})
-    titles = {a: f"{mods[a.split('-')[1]]['code']} — {mods[a.split('-')[1]]['title']}" for a in {x['assessment_id'] for x in attempts}}
+    titles = {x["module_id"]: f"{mods[x['module_id']]['code']} — {mods[x['module_id']]['title']}" for x in attempts if x["module_id"] in mods}
     history = [{**{k: a[k] for k in ["id", "assessment_id", "module_id", "attempt_number", "score", "max_score", "percent", "passed", "created_at", "per_competency"]},
-                "module_label": titles[a["assessment_id"]]} for a in reversed(attempts)]
+                "module_label": titles.get(a["module_id"], a["module_id"])} for a in reversed(attempts)]
     return {"user": user.public(), "courses": course_list,
             "modules_in_progress": [p for p in module_states.values() if p["status"] == "in_progress"],
             "modules_completed": [p for p in module_states.values() if p["status"] == "completed"],

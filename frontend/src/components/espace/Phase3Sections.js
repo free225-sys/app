@@ -95,9 +95,16 @@ const CredentialCard = ({ c, onClaim }) => {
       ) : (
         <div className="mt-4">
           {award?.status === "revoked" && <p className="mb-2 text-xs text-[#7E2828]" data-testid={`credential-revoked-${c.credential.id}`}>Certificat {award.code} révoqué : {award.revoke_reason}</p>}
-          <button type="button" className={BTN_PRIMARY} disabled={!c.eligible} onClick={claim} data-testid={`credential-claim-${c.credential.id}`}>
-            {c.eligible ? "Obtenir le certificat" : "Conditions non remplies"}
-          </button>
+          {c.reclaim?.blocked ? (
+            <p className="text-sm font-semibold text-[#7E2828]" role="status" data-testid={`credential-reclaim-blocked-${c.credential.id}`}>Révoqué, nouvelle demande soumise à autorisation</p>
+          ) : (
+            <>
+              {c.reclaim?.authorized && <p className="mb-2 text-xs text-[#147c77]" data-testid={`credential-reclaim-authorized-${c.credential.id}`}>Nouvelle demande autorisée par l'administrateur.</p>}
+              <button type="button" className={BTN_PRIMARY} disabled={!c.eligible} onClick={claim} data-testid={`credential-claim-${c.credential.id}`}>
+                {c.eligible ? "Obtenir le certificat" : "Conditions non remplies"}
+              </button>
+            </>
+          )}
           {err && <p role="alert" className="mt-2 text-xs text-[#7E2828]">{err}</p>}
         </div>
       )}

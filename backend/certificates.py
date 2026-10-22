@@ -80,8 +80,23 @@ async def my_credentials(user: User = Depends(require_learner)):
     for cred in await list_credentials():
         award = await db.awards.find_one({"user_id": user.id, "credential_id": cred["id"]}, sort=[("issued_at", -1)])
         out.append({"credential": {k: cred[k] for k in ["id", "title", "summary", "version"]}, **await evaluate(user.id, cred),
-                    "award": award_out(award) if award else None})
+                    "award": award_out(award) if award else None, "reclaim": await reclaim_state(user.id, cred["id"])})
     return out
+
+
+REVOKED_MSG = "Certificat révoqué : une nouvelle demande nécessite l'autorisation de l'administrateur"
+
+
+async def reclaim_state(user_id: str, cid: str) -> dict:
+    if not await db.awards.find_one({"user_id": user_id, "credential_id": cid, "status": "revoked"}):
+        return {"blocked": False, "authorized": False}
+    auth = await db.reclaim_authorizations.find_one({"user_id": user_id, "credential_id": cid, "status": "active"})
+    return {"blocked": not auth, "authorized": bool(auth)}
+
+
+async def consume_authorizations(user_id: str, cid: str, by: str, code: str):
+    await db.reclaim_authorizations.update_many({"user_id": user_id, "credential_id": cid, "status": "active"},
+                                                {"$set": {"status": "consumed", "consumed_at": now_iso(), "consumed_by": by, "consumed_code": code}})
 
 
 @router.post("/credentials/{cid}/claim")
@@ -90,6 +105,8 @@ async def claim(cid: str, user: User = Depends(require_learner)):
     existing = await db.awards.find_one({"user_id": user.id, "credential_id": cid, "status": "valid"})
     if existing:
         return award_out(existing)
+    if (await reclaim_state(user.id, cid))["blocked"]:
+        raise HTTPException(409, REVOKED_MSG)
     ev = await evaluate(user.id, cred)
     if not ev["eligible"]:
         raise HTTPException(400, f"Conditions non remplies : {ev['met_count']}/{ev['total']} preuves validées.")
@@ -99,6 +116,7 @@ async def claim(cid: str, user: User = Depends(require_learner)):
            "evidence_refs": [{"rule_id": r["id"], "label": r["label"], **r["evidence"]} for r in ev["rules"]]}
     res = await db.awards.insert_one(doc)
     doc["_id"] = res.inserted_id
+    await consume_authorizations(user.id, cid, "issuance", doc["code"])
     return award_out(doc)
 
 
@@ -204,7 +222,18 @@ async def verify(code: str):
 
 @router.get("/admin/certificates")
 async def admin_list(user: User = Depends(require_roles("admin"))):
-    return [award_out(d) async for d in db.awards.find().sort("issued_at", -1)]
+    docs = [d async for d in db.awards.find().sort("issued_at", -1)]
+    valid = {(d["user_id"], d["credential_id"]) for d in docs if d["status"] == "valid"}
+    active = {(a["user_id"], a["credential_id"]) async for a in db.reclaim_authorizations.find({"status": "active"})}
+    latest = {}
+    for d in docs:
+        latest.setdefault((d["user_id"], d["credential_id"]), d["code"])
+    out = []
+    for d in docs:
+        k = (d["user_id"], d["credential_id"])
+        out.append({**award_out(d), "reclaim": {"authorized": k in active and d["status"] == "revoked",
+                                                "can_authorize": d["status"] == "revoked" and latest[k] == d["code"] and k not in valid and k not in active}})
+    return out
 
 
 @router.get("/admin/attainments")
@@ -221,6 +250,25 @@ async def admin_attainments(user: User = Depends(require_roles("admin"))):
 
 async def revoke_award(doc: dict, reason: str):
     await db.awards.update_one({"_id": doc["_id"]}, {"$set": {"status": "revoked", "revoked_at": now_iso(), "revoke_reason": reason}})
+    await consume_authorizations(doc["user_id"], doc["credential_id"], "revocation", doc["code"])
+
+
+@router.post("/admin/certificates/{code}/allow-reclaim")
+async def admin_allow_reclaim(code: str, body: ReasonIn, user: User = Depends(require_roles("admin"))):
+    doc = await db.awards.find_one({"code": code})
+    if not doc:
+        raise HTTPException(404, "Certificat introuvable")
+    if doc["status"] != "revoked":
+        raise HTTPException(409, "Seul un certificat révoqué peut faire l'objet d'une autorisation de nouvelle demande.")
+    key = {"user_id": doc["user_id"], "credential_id": doc["credential_id"]}
+    if await db.awards.find_one({**key, "status": "valid"}):
+        raise HTTPException(409, "L'apprenant détient déjà un certificat valide pour cette certification.")
+    if await db.reclaim_authorizations.find_one({**key, "status": "active"}):
+        raise HTTPException(409, "Une autorisation de nouvelle demande est déjà active.")
+    await db.reclaim_authorizations.insert_one({**key, "award_code": code, "reason": body.reason.strip(), "status": "active", "granted_at": now_iso(),
+                                                "granted_by": {"id": user.id, "email": user.email}})
+    await log_change(user, "certificate", code, "allow_reclaim", body.reason.strip())
+    return {**award_out(doc), "reclaim": {"authorized": True, "can_authorize": False}}
 
 
 @router.post("/admin/certificates/{code}/revoke")

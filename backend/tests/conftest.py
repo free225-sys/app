@@ -6,7 +6,7 @@ import pytest
 from dotenv import dotenv_values
 
 PREPROD_DB = dotenv_values(Path(__file__).resolve().parents[1] / ".env").get("DB_NAME")
-WRITING_SUITES = {"test_backend.py", "test_phase2.py", "test_phase4.py", "test_phase5.py", "test_phase6.py", "test_roles_2026_10.py"}
+WRITING_SUITES = {"test_backend.py", "test_phase2.py", "test_phase4.py", "test_phase5.py", "test_phase6.py", "test_roles_2026_10.py", "test_revocation_block.py", "test_publish_guard_e2e.py"}
 
 
 def preprod_target() -> bool:

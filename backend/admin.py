@@ -12,7 +12,7 @@ from pydantic import ValidationError, BaseModel, EmailStr, Field
 from starlette.concurrency import run_in_threadpool
 
 from auth import ROLES, User, get_optional_user, hash_password, require_roles
-from core import BaseDocument, db, log_change, norm, now_iso
+from core import BaseDocument, LEVEL_ORDER, db, log_change, norm, now_iso
 import projects
 
 router = APIRouter(prefix="/api", tags=["admin"])
@@ -211,6 +211,46 @@ async def version_status(coll: str, eid: str, version) -> Optional[str]:
     return d["status"] if d else None
 
 
+async def module_level_index(module_id: str) -> int:
+    mod = await db.modules.find_one({"_id": module_id})
+    mv = mod and await db.module_versions.find_one({"entity_id": module_id, "version": mod.get("published_version")})
+    return max((LEVEL_ORDER.index(lv) for lv in (mv or {}).get("levels", [])), default=-1)
+
+
+async def evidence_levels(override_eid: Optional[str] = None, override: Optional[dict] = None) -> Dict[str, Dict[str, int]]:
+    """Best reachable level per competency and evidence type from published graded assessments and rubrics."""
+    best: Dict[str, Dict[str, int]] = {"graded_attempt": {}, "project": {}}
+    async for ent in db.assessments.find({"kind": "graded", "published_version": {"$ne": None}}):
+        c = override if ent["_id"] == override_eid else content_of(await db.assessment_versions.find_one({"entity_id": ent["_id"], "version": ent["published_version"]}) or {})
+        lvl = await module_level_index(ent["module_id"])
+        for q in c.get("questions", []):
+            for w in (await db.questions.find_one({"_id": f"{q['question_id']}@{q['version']}"}) or {}).get("competencies", []):
+                if w.get("weight", 0) > 0:
+                    best["graded_attempt"][w["competency_id"]] = max(best["graded_attempt"].get(w["competency_id"], -1), lvl)
+    async for r in db.rubrics.find({"status": "published"}):
+        lvl = await module_level_index(r["module_id"])
+        for comp in r.get("competency_ids", []):
+            best["project"][comp] = max(best["project"].get(comp, -1), lvl)
+    return best
+
+
+def reachable(best: Dict[str, Dict[str, int]], rule: dict) -> bool:
+    need = LEVEL_ORDER.index(rule["min_level"])
+    return any(best.get(e, {}).get(rule["competency_id"], -1) >= need for e in rule.get("evidence_types") or ["graded_attempt", "project"])
+
+
+async def credential_regressions(eid: str, c: dict) -> List[dict]:
+    """Published credential rules that are reachable today but would no longer be if this assessment content were published."""
+    before, after = await evidence_levels(), await evidence_levels(eid, c)
+    out = []
+    async for cred in db.credentials.find({"status": "published"}):
+        for r in cred["rules"]:
+            if r.get("competency_id") and r.get("min_level") and reachable(before, r) and not reachable(after, r):
+                out.append({"credential_id": cred["_id"], "rule": r,
+                            "message": f"{cred['_id']} règle {r['id']} : {r['competency_id']} niveau {r['min_level']} ne serait plus atteignable par aucune preuve publiée."})
+    return out
+
+
 async def publish_errors(t: str, eid: str, c: dict) -> List[str]:
     errs = []
     comps, stages, layers = await ids_in("competencies"), await ids_in("stages"), await ids_in("layers")
@@ -251,6 +291,7 @@ async def publish_errors(t: str, eid: str, c: dict) -> List[str]:
         for q in c["questions"]:
             if await version_status("questions", q.get("question_id"), q.get("version")) != "published":
                 errs.append(f"Question non publiée : {q.get('question_id')} v{q.get('version')}.")
+        errs += [f"Certification rendue impossible — {m['message']}" for m in await credential_regressions(eid, c)]
     elif t == "course":
         if not c["module_ids"]:
             errs.append("Un cours doit contenir au moins un module.")

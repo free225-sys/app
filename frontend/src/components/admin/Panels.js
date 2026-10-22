@@ -6,7 +6,7 @@ import { Loading } from "@/components/common";
 import { BTN_DANGER, BTN_SMALL, INPUT, LEGACY_ROLE_LABEL, Notice, StatusBadge, fmtDate, pct } from "./shared";
 
 const ACTIONS = { create: "Création", update: "Modification", new_version: "Nouvelle version", submit: "Soumission", approve: "Approbation", return: "Renvoi",
-  publish: "Publication", publish_blocked: "Publication bloquée", retire: "Retrait", revoke: "Révocation", invalidate: "Invalidation", upload: "Téléversement" };
+  publish: "Publication", publish_blocked: "Publication bloquée", retire: "Retrait", revoke: "Révocation", allow_reclaim: "Autorisation de nouvelle demande", invalidate: "Invalidation", upload: "Téléversement" };
 
 const ExportQueue = () => {
   const [busy, setBusy] = useState("");
@@ -108,7 +108,8 @@ const AwardRow = ({ a, onChange }) => {
   const act = async (path) => {
     try {
       const { data } = await http.post(path, { reason });
-      setMsg(data.revoked_certificates ? `Preuve invalidée. Certificats révoqués : ${data.revoked_certificates.join(", ") || "aucun"}.` : "Certificat révoqué.");
+      setMsg(data.revoked_certificates ? `Preuve invalidée. Certificats révoqués : ${data.revoked_certificates.join(", ") || "aucun"}.`
+        : path.endsWith("allow-reclaim") ? "Nouvelle demande autorisée (valable une fois)." : "Certificat révoqué.");
       onChange();
     } catch (e) {
       setMsg(formatApiError(e));
@@ -125,6 +126,8 @@ const AwardRow = ({ a, onChange }) => {
         <label htmlFor={`reason-${a.code}`} className="sr-only">Motif</label>
         <input id={`reason-${a.code}`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Motif (obligatoire)" className={`${INPUT} flex-1`} data-testid={`admin-reason-${a.code}`} />
         {a.status === "valid" && <button type="button" className={BTN_DANGER} disabled={reason.trim().length < 3} onClick={() => act(`/admin/certificates/${a.code}/revoke`)} data-testid={`admin-revoke-${a.code}`}>Révoquer</button>}
+        {a.reclaim?.can_authorize && <button type="button" className={BTN_SMALL} disabled={reason.trim().length < 3} onClick={() => act(`/admin/certificates/${a.code}/allow-reclaim`)} data-testid={`admin-allow-reclaim-${a.code}`}>Autoriser une nouvelle demande</button>}
+        {a.reclaim?.authorized && <span className="text-xs font-semibold text-[#147c77]" data-testid={`admin-reclaim-authorized-${a.code}`}>Nouvelle demande autorisée</span>}
       </div>
       <ul className="mt-3 space-y-1 text-xs">
         {a.evidence_refs.map((e) => (
