@@ -25,6 +25,8 @@ _storage_key = None
 
 def init_storage(force: bool = False):
     global _storage_key
+    if os.environ.get("STORAGE_DISABLED") == "1":
+        raise RuntimeError("stockage objet désactivé sur cette instance")
     if _storage_key and not force:
         return _storage_key
     resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": os.environ["EMERGENT_LLM_KEY"]}, timeout=30)
