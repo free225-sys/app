@@ -99,7 +99,7 @@ function LearnView() {
               {hasFormative && <SideItem active={current === "formatif"} done={false} icon={<PenLine size={11} />} label="Quiz formatif" sub="Entraînement, essais illimités"
                 onClick={() => go("formatif")} testId="learn-nav-formatif" />}
               {g && <SideItem active={current === "evaluation"} done={g.passed} icon={<ClipboardCheck size={11} />} label="Évaluation notée"
-                sub={`${g.attempts_used}/3 tentatives${g.best_percent != null ? ` · meilleur score ${Math.round(g.best_percent * 100)} %` : ""}`}
+                sub={`${g.attempts_used}/${g.max_attempts ?? 3} tentatives${g.best_percent != null ? ` · meilleur score ${Math.round(g.best_percent * 100)} %` : ""}`}
                 onClick={() => go("evaluation")} testId="learn-nav-evaluation" />}
               {rubric && (
                 <SideItem active={current === "projet"} done={false} icon={<FolderKanban size={11} />} label="Projet appliqué" sub="Dépôt et évaluation par grille"

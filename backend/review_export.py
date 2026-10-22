@@ -26,6 +26,7 @@ MEMORY = Path(__file__).resolve().parents[1] / "memory"
 REPORTS = {"tableau-de-bord": ("RAPPORT_CORRECTION_TABLEAU_DE_BORD.md", "Correction du tableau de bord"),
            "test-isole-cert-doc-01": ("RAPPORT_TEST_ISOLE_CERT_DOC_01.md", "Tests isolés CERT-DOC-01"),
            "rapprochement-m001-v2": ("RAPPROCHEMENT_M001_V2.md", "Rapprochement M-001 v2"),
+           "regle-repli-niveau": ("REGLE_REPLI_NIVEAU.md", "Règle de repli du niveau évalué (quiz publiés)"),
            "test-isole-regles-2026-10": ("RAPPORT_TEST_ISOLE_REGLES_2026_10.md", "Test isolé — règles 2026-10 (niveau évalué, tentatives supplémentaires)")}
 ORDER = ["resource", "question", "assessment", "module", "course", "pathway"]
 STATUS = {"draft": "brouillon", "review": "en relecture"}
@@ -213,6 +214,10 @@ async def build_markdown() -> str:
                           f"(règle {reg['rule']['id']} : {reg['rule']['competency_id']} niveau {reg['rule']['min_level']}). "
                           "Le contrôle de publication refuse cette publication tant que la règle ne serait plus atteignable.")
         md.append("")
+    md += ["## Règle de repli (quiz déjà publiés)",
+           "- Un quiz publié sans module_version est rattaché à la dernière version publiée de son module dont la date de publication est antérieure ou égale à celle du quiz "
+           "(à défaut, la première version publiée) ; niveau évalué = niveau maximal de cette version. Calculé sans écriture en base, actif seulement avec "
+           "CASA_LEVEL_FROM_ASSESSMENT_MODULE_VERSION (désactivé en préproduction). Détail par quiz : rapport « Règle de repli du niveau évalué ».", ""]
     md += await scoring_block(items) + [""]
     for i in items:
         d, c, t = i["doc"], i["content"], i["type"]

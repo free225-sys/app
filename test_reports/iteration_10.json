@@ -1,0 +1,27 @@
+{
+  "summary": "Read-only verification (préproduction 8001, drapeau CASA_EXTRA_ATTEMPT_GRANTS OFF) du correctif colonne latérale ModuleLearn + rapport 'regle-repli-niveau'. 7/7 tests pytest OK. Aucune écriture dans test_database. Aucune publication. Captures: ModuleLearn M-003 affiche '0/3 tentatives' comme attendu avec drapeau désactivé. Endpoints POST autres que /api/auth/login non utilisés.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "verifications": {
+    "code_review": "backend/learning.py:349 — bloc conditionnel `if flag(GRANTS_FLAG) and prog['graded']:` : correct, n'ajoute 'max_attempts' que si drapeau=1. Réponse API strictement identique quand drapeau OFF (clé absente). frontend/src/pages/ModuleLearn.js:102 — `${g.attempts_used}/${g.max_attempts ?? 3} tentatives` : repli à 3 conforme au comportement précédent. Logique correcte, pas de régression quand drapeau off.",
+    "api_graded_no_max_attempts": "GET /api/learners/me/modules/M-003/progress → 200, 'graded' = {assessment_id, attempts_used, best_percent, passed}; pas de clé 'max_attempts'.",
+    "api_admin_attempt_grants": "GET /api/admin/attempt-grants → 404 (grants_enabled lève HTTPException 404 quand drapeau OFF). Conforme.",
+    "api_reports_list": "GET /api/admin/reports → contient {id:'regle-repli-niveau', available:true}.",
+    "api_report_md_pdf": "GET /api/admin/reports/regle-repli-niveau?format=md → 200, Markdown contient 'Règle de repli' et 'CASA_LEVEL_FROM_ASSESSMENT_MODULE_VERSION'. format=pdf → 200, en-tête %PDF-, Content-Type application/pdf.",
+    "api_review_queue_export": "GET /api/admin/review-queue/export?format=md → 200, contient '## Règle de repli (quiz déjà publiés)', en-tête annonce exactement 20 éléments en brouillon ou en relecture. format=pdf → 200, %PDF-.",
+    "ui_sidebar_m003": "/modules/M-003/learn colonne latérale → 'Évaluation notée · 0/3 tentatives'. Aucun clic Envoyer. Pas de bannière 'Niveau évalué' (normal, drapeau OFF)."
+  },
+  "test_report_links": ["/app/backend/tests/test_readonly_iter10.py", "/app/test_reports/pytest/iter10.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Correctif minimal, bien délimité derrière flag(GRANTS_FLAG) ; aucune écriture. Repli UI '?? 3' aligné avec max_attempts par défaut des évaluations notées (vérifier si une évaluation déclare un seed différent — ici toutes = 3, OK).",
+    "RAS : pas de fuite de secrets, pas d'ObjectId, codes HTTP cohérents (404 pour drapeau off)."
+  ],
+  "updated_files": ["/app/backend/tests/test_readonly_iter10.py"],
+  "success_rate": {"backend": "100% (7/7)", "frontend": "100% (sidebar vérifiée)"},
+  "test_credentials": "utilisées depuis /app/memory/test_credentials.md (non reproduites ici)",
+  "seed_data_creation": "aucune (lecture seule stricte)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Instance 8001 drapeau CASA_EXTRA_ATTEMPT_GRANTS désactivé (vérifié : /api/admin/attempt-grants = 404 et module_progress sans max_attempts). Tests pytest réutilisables : /app/backend/tests/test_readonly_iter10.py. Ne pas lancer les suites qui écrivent (pytest -k attempt_submit etc.)."
+}
