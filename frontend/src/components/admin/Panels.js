@@ -27,6 +27,32 @@ const ExportQueue = () => {
   );
 };
 
+const Reports = () => {
+  const { data } = useApi("/admin/reports");
+  const [err, setErr] = useState("");
+  const get = async (r, fmt) => {
+    setErr("");
+    try { await downloadFile(`/admin/reports/${r.id}?format=${fmt}`, `${r.id}.${fmt}`); }
+    catch (e) { setErr(formatApiError(e)); }
+  };
+  if (!data?.length) return null;
+  return (
+    <div className="mt-4 border border-[#e5e9ef] bg-white p-4" role="group" aria-label="Rapports" data-testid="review-reports">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#627086]">Rapports</p>
+      <ul className="mt-2 space-y-2">
+        {data.filter((r) => r.available).map((r) => (
+          <li key={r.id} className="flex flex-wrap items-center gap-2 text-sm" data-testid={`report-${r.id}`}>
+            <span className="flex-1 font-semibold">{r.title}</span>
+            <button type="button" className={BTN_SMALL} onClick={() => get(r, "pdf")} data-testid={`report-${r.id}-pdf`}>PDF</button>
+            <button type="button" className={BTN_SMALL} onClick={() => get(r, "md")} data-testid={`report-${r.id}-md`}>Markdown</button>
+          </li>
+        ))}
+      </ul>
+      {err && <p role="alert" className="mt-2 text-xs text-[#7E2828]">{err}</p>}
+    </div>
+  );
+};
+
 export const ReviewQueue = ({ open }) => {
   const { data, error } = useApi("/admin/review-queue");
   if (error) return <Notice kind="error">{formatApiError(error)}</Notice>;
@@ -37,6 +63,7 @@ export const ReviewQueue = ({ open }) => {
         <h2 id="rq-title" className="text-2xl font-semibold tracking-tight">À relire et à publier</h2>
         <ExportQueue />
       </div>
+      <Reports />
       {data.length === 0 ? <p className="mt-6 text-sm" data-testid="review-queue-empty">Aucune version en relecture.</p> : (
         <ul className="mt-6 divide-y divide-[#e5e9ef] border border-[#e5e9ef] bg-white">
           {data.map((v) => (

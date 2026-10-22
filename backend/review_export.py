@@ -1,11 +1,12 @@
 """Read-only export of the review queue (drafts and versions in review) as Markdown or PDF."""
 import json
 import re
+from pathlib import Path
 from datetime import datetime, timezone
 from io import BytesIO
 from typing import List, Optional, Tuple
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
@@ -20,7 +21,12 @@ from core import LEVEL_ORDER, db
 from learning import ATTAIN_THRESHOLD
 
 router = APIRouter(prefix="/api")
-ORDER = ["question", "assessment", "module", "course", "pathway"]
+BASELINES = Path(__file__).parent / "data" / "review_baselines"
+MEMORY = Path(__file__).resolve().parents[1] / "memory"
+REPORTS = {"tableau-de-bord": ("RAPPORT_CORRECTION_TABLEAU_DE_BORD.md", "Correction du tableau de bord"),
+           "test-isole-cert-doc-01": ("RAPPORT_TEST_ISOLE_CERT_DOC_01.md", "Tests isolés CERT-DOC-01"),
+           "rapprochement-m001-v2": ("RAPPROCHEMENT_M001_V2.md", "Rapprochement M-001 v2")}
+ORDER = ["resource", "question", "assessment", "module", "course", "pathway"]
 STATUS = {"draft": "brouillon", "review": "en relecture"}
 registerFontFamily("Inter", normal="Inter", bold="Inter-SemiBold", italic="Inter", boldItalic="Inter-SemiBold")
 
@@ -89,11 +95,11 @@ def cert_providers(items: List[dict], target: dict, rule: dict) -> List[dict]:
     need = LEVEL_ORDER.index(rule["min_level"])
     out = []
     for j in items:
-        if j is target or j["type"] != "assessment" or rule["competency_id"] not in j["carried"]:
+        if j is target or j["type"] != "assessment" or j["content"].get("kind") != "graded" or rule["competency_id"] not in j["carried"]:
             continue
         mod = next((m for m in items if m["type"] == "module" and m["doc"]["entity_id"] == j["content"].get("module_id")), None)
         if mod and max((LEVEL_ORDER.index(lv) for lv in mod["content"].get("levels", [])), default=-1) >= need:
-            out += [j, mod]
+            out += [x for x in (j, mod) if x not in out]
     return out
 
 
@@ -133,6 +139,10 @@ async def scoring_block(items: List[dict]) -> List[str]:
         if i["type"] != "assessment":
             continue
         c = i["content"]
+        if c.get("kind") != "graded":
+            out += [f"### {i['doc']['entity_id']} v{i['doc']['version']}",
+                    "- Quiz formatif : non noté (aucun seuil), aucun acquis ni aucune preuve de certification ; sa publication s'applique à tous les modules qui le référencent."]
+            continue
         weights = {}
         for q in c.get("questions", []):
             qd = await db.questions.find_one({"question_id": q["question_id"], "version": q.get("version")}) or {}
@@ -140,7 +150,7 @@ async def scoring_block(items: List[dict]) -> List[str]:
                 weights[w["competency_id"]] = weights.get(w["competency_id"], 0) + w["weight"]
         mod = next((m for m in items if m["type"] == "module" and m["doc"]["entity_id"] == c.get("module_id")), None)
         if mod:
-            level, mod_label = (mod["content"].get("levels") or ["?"])[-1], f"{c.get('module_id')} v{mod['doc']['version']}"
+            level, mod_label = (mod["content"].get("levels") or ["?"])[-1], f"après publication de {c.get('module_id')} v{mod['doc']['version']}"
         else:
             pv = await published_version("module", c.get("module_id"))
             mv = await db.module_versions.find_one({"entity_id": c.get("module_id"), "version": pv}) or {}
@@ -150,7 +160,8 @@ async def scoring_block(items: List[dict]) -> List[str]:
                 "- Correction tout-ou-rien par question, choix multiples compris : une question n'est juste que si l'ensemble coché est exactement l'ensemble attendu.",
                 "- Acquis : " + "; ".join(f"{k} pondéré sur {v} points, acquis si ≥ {round(ATTAIN_THRESHOLD * 100)} %" for k, v in weights.items())
                 + ", calculé uniquement pour une tentative réussie.",
-                f"- Niveau de l'acquis : niveau maximal du module publié au moment de la réussite ({mod_label} : {level}).",
+                f"- Niveau de l'acquis (comportement actuel) : niveau maximal de la version de {c.get('module_id')} publiée au moment où la tentative réussie est enregistrée "
+                f"({mod_label} : {level}). Ce niveau ne dépend pas de la version de l'évaluation passée, et la tentative n'enregistre pas la version du module (règle en cours de clarification).",
                 "- Tentatives comptées par évaluation, toutes versions confondues : les tentatives déjà faites sur une version antérieure restent comptées et conservées ; acquis existants conservés sans recalcul."]
     for m in items:
         if m["type"] == "module":
@@ -160,8 +171,26 @@ async def scoring_block(items: List[dict]) -> List[str]:
     return out
 
 
+def load_baseline() -> Optional[dict]:
+    files = sorted(BASELINES.glob("*.json"))
+    return json.loads(files[-1].read_text()) if files else None
+
+
+def since_baseline(i: dict, base: Optional[dict]) -> List[str]:
+    if not base:
+        return []
+    title = f"**Changements depuis l'{base['label']}**"
+    prev = next((b for b in base["items"] if (b["type"], b["entity_id"], b["version"]) == (i["type"], i["doc"]["entity_id"], i["doc"]["version"])), None)
+    if prev is None:
+        return [title, "- Nouvel élément depuis cet export.", ""]
+    keys = sorted(set(prev["content"]) | set(i["content"]))
+    lines = [f"- {k} : {full(prev['content'].get(k))} → {full(i['content'].get(k))}" for k in keys if prev["content"].get(k) != i["content"].get(k)]
+    return [title] + (lines or ["- Aucun changement."]) + [""]
+
+
 async def build_markdown() -> str:
     items = await collect()
+    base = load_baseline()
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     md = ["# Document de relecture — préproduction — aucune publication", "", f"Généré le {now} depuis la base, en lecture seule. {len(items)} élément(s) en brouillon ou en relecture.", ""]
     md += ["## Ordre de publication"] + [f"{n}. {TYPES[i['type']]['label']} {i['doc']['entity_id']} v{i['doc']['version']}" for n, i in enumerate(items, 1)] + [""]
@@ -185,6 +214,7 @@ async def build_markdown() -> str:
                "- **Dépendances** : " + ("; ".join(i["deps"]) or "aucune"), "- **À publier avant** : " + (", ".join(i["before"]) or "rien"), ""]
         if t == "question":
             md += question_block(c) + [""]
+        md += since_baseline(i, base)
         md.append("**Changements par rapport à la version publiée**" if i["prev"] else "**Changements : nouvelle entité** (contenu complet " + ("ci-dessus)" if t == "question" else "ci-dessous)"))
         keys = sorted(set(c) | set(i["prev"] or {}))
         for k in keys:
@@ -203,7 +233,7 @@ def inline(text: str) -> str:
     return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
 
 
-def to_pdf(md: str) -> bytes:
+def to_pdf(md: str, footer: str = "Document de relecture — préproduction — aucune publication") -> bytes:
     base = ParagraphStyle("b", fontName="Inter", fontSize=9, leading=13)
     styles = {"# ": ParagraphStyle("h1", parent=base, fontName="Inter-SemiBold", fontSize=15, leading=19, spaceAfter=6),
               "## ": ParagraphStyle("h2", parent=base, fontName="Inter-SemiBold", fontSize=12, leading=16, spaceBefore=10, spaceAfter=4),
@@ -213,6 +243,10 @@ def to_pdf(md: str) -> bytes:
         if not line.strip():
             flow.append(Spacer(1, 4))
             continue
+        if line.startswith("```") or (line.startswith("|") and set(line) <= set("|-: ")):
+            continue
+        if line.startswith("|"):
+            line = " · ".join(c.strip() for c in line.strip("|").split("|"))
         head = next((p for p in ("### ", "## ", "# ") if line.startswith(p)), None)
         if head:
             flow.append(Paragraph(inline(line[len(head):]), styles[head]))
@@ -223,7 +257,6 @@ def to_pdf(md: str) -> bytes:
         flow.append(Paragraph(inline(body[2:] if bullet else body), ParagraphStyle("li", parent=base, leftIndent=10 + indent * 12, bulletIndent=indent * 12) if bullet else base,
                               bulletText="•" if bullet else None))
     buf = BytesIO()
-    footer = "Document de relecture — préproduction — aucune publication"
 
     def on_page(canvas, doc):
         canvas.setFont("Inter", 7)
@@ -231,6 +264,22 @@ def to_pdf(md: str) -> bytes:
     SimpleDocTemplate(buf, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm, topMargin=16 * mm, bottomMargin=16 * mm,
                       title="File de relecture — CASA AI Academy").build(flow, onFirstPage=on_page, onLaterPages=on_page)
     return buf.getvalue()
+
+
+@router.get("/admin/reports")
+async def list_reports(user: User = Depends(require_roles("admin"))):
+    return [{"id": k, "title": t, "available": (MEMORY / f).exists()} for k, (f, t) in REPORTS.items()]
+
+
+@router.get("/admin/reports/{rid}")
+async def get_report(rid: str, format: str = Query("md", pattern="^(md|pdf)$"), user: User = Depends(require_roles("admin"))):
+    if rid not in REPORTS or not (MEMORY / REPORTS[rid][0]).exists():
+        raise HTTPException(404, "Rapport introuvable")
+    md = (MEMORY / REPORTS[rid][0]).read_text()
+    name = REPORTS[rid][0].rsplit(".", 1)[0].lower().replace("_", "-")
+    if format == "pdf":
+        return Response(to_pdf(md, "Rapport — préproduction"), media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{name}.pdf"'})
+    return Response(md, media_type="text/markdown; charset=utf-8", headers={"Content-Disposition": f'attachment; filename="{name}.md"'})
 
 
 @router.get("/admin/review-queue/export")
